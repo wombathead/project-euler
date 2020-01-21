@@ -68,13 +68,19 @@
 	(return-from problem4 max)))
 
 (defun problem5 (n)
-  "Compute smallest number divisible by all numbers 2-n"
-  (let ((factors '()) (a 1))
-	(loop for i from 1 to n do
-		  (loop for f in factors do
-				(if (= 0 (mod i f))
-				  (setf i (floor i f))))
-		  (setf factors (cons i factors))
-		  (setf a (* a i)))))
+  "Compute smallest number divisible by all numbers 2..n"
+  (let ((a 1))
+	(loop for i from 2 to n do
+		  (setf a (lcm a i)))
+	(return-from problem5 a)))
 
-(prin1 (problem5 20))
+(defun problem6 (n)
+  "Difference between sum of squares and square of sum"
+  (let ((nums (loop for i from 1 to n collect i)))
+	(setf sum-squares (apply '+ (mapcar (lambda (x) (* x x)) nums)))
+	(setf square-sum (expt (apply '+ nums) 2)))
+  (- square-sum sum-squares))
+
+(defun problem7 (n)
+  "nth prime number"
+  ())

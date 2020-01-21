@@ -81,6 +81,7 @@ def problem5(n):
         for f in factors:
             if i % f == 0:
                 i = i // f
+                print(i)
         factors.append(i)
         a *= i
 
