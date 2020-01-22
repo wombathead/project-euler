@@ -29,27 +29,28 @@
 			  (setf factors (cons i factors)))))
 	(return-from get-factors (remove-duplicates (sort factors #'>)))))
 
-(defun is-prime (n)
+(defun prime-p (n)
   "Returns whether n is prime"
   ; first check whether n == 2 or n is even
   (if (= n 2)
-	(return t))
+	(return-from prime-p t))
   (if (= 0 (mod n 2))
-	(return nil))
+	(return-from prime-p nil))
 
-  (setf root (+ 1 (isqrt n)))
-  (loop for i from 3 to root by 2 do
+  (let ((root (+ 1 (isqrt n))))
+	(loop for i from 3 to root by 2 do
 		(if (= 0 (mod n i))
-		  (return-from is-prime nil)))
+		  (return-from prime-p nil)))
+	(return-from prime-p t)))
 
-  (return-from is-prime t))
+(prin1 (mapcar #'prime-p '(5 10 17 21)))
 
 (defun problem3 (n)
   "Computes the largest prime factor of n"
   (setf factors (get-factors n))
   (setf max 0)
   (loop for f in factors do
-		(if (and (is-prime f) (> f max))
+		(if (and (prime-p f) (> f max))
 		  (setf max f)))
   (return-from problem3 max))
 
