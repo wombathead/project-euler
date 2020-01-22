@@ -219,7 +219,7 @@ def problem11():
                 max = prod
 
 def main():
-    print(problem5(10))
+    print(problem4())
 
 if __name__=="__main__":
     main()
