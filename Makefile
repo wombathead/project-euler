@@ -1,7 +1,8 @@
+LISP = sbcl
 TARGET = euler
 
-lisp: $(TARGET).lisp
-	clisp -c -q $<
+compile: $(TARGET).lisp
+	$(LISP) -c -q $<
 
-run-lisp:
-	clisp $(TARGET).fas
+run: $(TARGET).lisp
+	$(LISP) --script $(TARGET).lisp

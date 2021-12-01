@@ -219,7 +219,12 @@ def problem11():
                 max = prod
 
 def main():
+    import time
+
+    start = time.time()
     print(problem4())
+    end = time.time()
+    print("Took "+str(end - start)+"s")
 
 if __name__=="__main__":
     main()
