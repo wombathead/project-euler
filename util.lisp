@@ -1,0 +1,118 @@
+;;;; util.lisp
+
+;;; general
+
+(defun read-from-file (filename)
+  (with-open-file (s filename)
+    (loop for line = (read-line s nil)
+          while line
+          collect line)))
+
+(defun print-hash-table (ht)
+  (maphash (lambda (k v) (format t "~A: ~A~%" k v)) ht))
+
+;;; number theory
+
+(defun prime-p (n)
+  (case n
+    (1 nil)
+    (2 t)
+    (3 t)
+    (t (loop for prime = t then (if (zerop (mod n i)) nil prime)
+             for i from 2 upto (isqrt n)
+             until (not prime)
+             finally (return prime)))))
+
+(defun collatz (n)
+  "Collatz function"
+  (if (evenp n) (/ n 2) (1+ (* 3 n))))
+
+(defun pollard-rho (n &optional g)
+  "Return a prime factor of N using polynomial G"
+  (let* ((n (abs n))
+         (g (if g g (lambda (x) (mod (+ (* x x) (random n)) n))))
+         (result (loop for x = 2 then (funcall g x)
+                       for y = 2 then (funcall g (funcall g y))
+                       for d = 1 then (gcd (abs (- x y)) n)
+                       while (= d 1)
+                       finally (return d))))
+    (if (= result n) n result)))
+
+(defun prime-factors (n)
+  "Return the prime factorization of N as a list"
+  (loop for m = n then (/ m k)
+        for k = (pollard-rho m)
+        collect k  
+        until (= k m)))
+
+(defun factors (n)
+  "Return all factors of N"
+  (loop for i from 1 upto (isqrt n)
+        for (q r) = (multiple-value-list (floor n i))
+        if (zerop r)
+        if (/= i q) append (list i q)
+        else append (list q)))
+
+(defun proper-factors (n)
+  "All factors of N excluding N"
+  (remove n (factors n)))
+
+(defun perfect-number-p (n)
+  (= n (reduce #'+ (proper-factors n))))
+
+(defun digit-sum (n &optional base)
+  "Sum of digits of N represented in BASE"
+  (loop with b = (if base base 10)
+        for m = n then q
+        for (q r) = (multiple-value-list (floor m b))
+        sum r  
+        until (zerop q)))
+
+(defun palindrome-p (n)
+  (let ((str (write-to-string n)))
+    (string= str (reverse str))))
+
+(defun eratosthenes-sieve (n)
+  "Return list of all primes below N"
+  ;; TODO: can optimise by only storing odd numbers (since no evens are prime
+  ;; except for 2) and using index maths
+  (loop with composites = (make-array (list n) :initial-element nil)
+        for i = 2 then (loop for j from (1+ i) below n
+                             unless (aref composites j)
+                             minimize j)
+        until (zerop i)
+        do (loop for j from 1 upto (floor n i)
+                 for idx = (* i j)
+                 if (< idx n)
+                 do (setf (aref composites idx) 1))
+        collect i))
+
+(defun factorial (n)
+  "N! = N * (N-1) * ... * 2 * 1"
+  (if (zerop n)
+      1
+      (loop for i from 1 upto n
+            for j = i then (* j i)
+            finally (return j))))
+
+(defun choose (n k)
+  "N choose K"
+  (/ (factorial n) (* (factorial (- n k)) (factorial k))))
+
+(defun binomial (x y n)
+  (loop for k from 0 upto n
+        sum (* (choose n k) (expt x k) (expt y (- n k)))))
+
+;;; graphs
+
+#|
+(defun topological-ordering (G)
+  ;; find a vertex with no incoming edges
+  ;(let ((degrees (make-hash-table :test (hash-table-test G)))))
+  )
+
+(defun number-of-paths (G)
+  ;; first order G topologically
+  ;; then in reverse order: #paths(u) = sum(#paths(v) : (u,v) in E)
+  )
+|#

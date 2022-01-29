@@ -1,108 +1,14 @@
-;;;; TODO: make sure this works with numthy.lisp
+;;;; euler.lisp
 
-(defun read-from-file (filename)
-  (with-open-file (s filename)
-    (loop for line = (read-line s nil)
-          while line
-          collect line)))
+(load "util.lisp")
 
-(defun prime-p (n)
-  (case n
-    (1 nil)
-    (2 t)
-    (3 t)
-    (t (loop for prime = t then (if (zerop (mod n i)) nil prime)
-             for i from 2 upto (isqrt n)
-             until (not prime)
-             finally (return prime)))))
-
-(defun collatz (n)
-  "Collatz function"
-  (if (evenp n) (/ n 2) (1+ (* 3 n))))
-
-(defun pollard-rho (n &optional g)
-  "Return a prime factor of N using polynomial G"
-  (let* ((n (abs n))
-         (g (if g g (lambda (x) (mod (+ (* x x) (random n)) n))))
-         (result (loop for x = 2 then (funcall g x)
-                       for y = 2 then (funcall g (funcall g y))
-                       for d = 1 then (gcd (abs (- x y)) n)
-                       while (= d 1)
-                       finally (return d))))
-    (if (= result n) n result)))
-
-(defun prime-factors (n)
-  "Return the prime factorization of N as a list"
-  (loop for m = n then (/ m k)
-        for k = (pollard-rho m)
-        collect k  
-        until (= k m)))
-
-(defun factors (n)
-  "Return all factors of N"
-  (loop for i from 1 upto (isqrt n)
-        for (q r) = (multiple-value-list (floor n i))
-        if (zerop r)
-        if (/= i q) append (list i q)
-        else append (list q)))
-
-(defun proper-factors (n)
-  "All factors of N excluding N"
-  (remove n (factors n)))
-
-(defun perfect-number-p (n)
-  (= n (reduce #'+ (proper-factors n))))
-
-(defun digit-sum (n &optional base)
-  "Sum of digits of N represented in BASE"
-  (loop with b = (if base base 10)
-        for m = n then q
-        for (q r) = (multiple-value-list (floor m b))
-        sum r  
-        until (zerop q)))
-
-(defun palindrome-p (n)
-  (let ((str (write-to-string n)))
-    (string= str (reverse str))))
-
-(defun eratosthenes-sieve (n)
-  "Return list of all primes below N"
-  ;; TODO: can optimise by only storing odd numbers (since no evens are prime
-  ;; except for 2) and using index maths
-  (loop with composites = (make-array (list n) :initial-element nil)
-        for i = 2 then (loop for j from (1+ i) below n
-                             unless (aref composites j)
-                             minimize j)
-        until (zerop i)
-        do (loop for j from 1 upto (floor n i)
-                 for idx = (* i j)
-                 if (< idx n)
-                 do (setf (aref composites idx) 1))
-        collect i))
-
-(defun factorial (n)
-  "N! = N * (N-1) * ... * 2 * 1"
-  (if (zerop n)
-      1
-      (loop for i from 1 upto n
-            for j = i then (* j i)
-            finally (return j))))
-
-(defun choose (n k)
-  "N choose K"
-  (/ (factorial n) (* (factorial (- n k)) (factorial k))))
-
-(defun binomial (x y n)
-  (loop for k from 0 upto n
-        sum (* (choose n k) (expt x k) (expt y (- n k)))))
-
-(defun euler-1 (n)
+(defun euler-001 (n)
   "Sum of multiples of 3 or 5 less than N"
   (loop for i from 1 below n
         if (or (zerop (mod i 3)) (zerop (mod i 5)))
         sum i))
 
-(defun euler-2 (n)
+(defun euler-002 (n)
   "Sum of even Fibonacci numbers not exceeding N"
   (loop for a = 0 then b
         for b = 1 then c
@@ -111,11 +17,11 @@
         sum c
         until (> c n)))
 
-(defun euler-3 (n)
+(defun euler-003 (n)
   "Computes the largest prime factor of N"
   (reduce #'max (prime-factors n)))
 
-(defun euler-4 (n)
+(defun euler-004 (n)
   "Compute largest palindrome product of two N-digit numbers"
   (let ((smallest (expt 10 (1- n)))
         (largest (1- (expt 10 n))))
@@ -125,19 +31,19 @@
                          if (palindrome-p product)
                          maximize product))))
 
-(defun euler-5 (n)
+(defun euler-005 (n)
   "Compute smallest number divisible by all numbers 2..N"
   (loop for a = 1 then (lcm a i)
         for i from 2 upto n
         finally (return a)))
 
-(defun euler-6 (n)
+(defun euler-006 (n)
   "Difference between sum of squares and square of sum for the first N natural numbers"
   (let ((nums (loop for i from 1 to n collect i)))
     (abs (- (expt (reduce #'+ nums) 2)
             (reduce #'+ (mapcar (lambda (x) (* x x)) nums))))))
 
-(defun euler-7 (n)
+(defun euler-007 (n)
   "Return Nth prime number"
   (if (< n 2)
       2
@@ -149,14 +55,15 @@
             until (>= (1+ n-primes) n)
             finally (return p))))
 
-(defun euler-8 (n m)
+(defun euler-008 (filename m)
   "Find the M adjacent digits in string N with the largest product"
-  (loop with l = (length n) 
+  (loop with n = (first (read-from-file filename))
+        with l = (length n) 
         for i from 0 upto (- l m)
         for window = (subseq n i (+ i m))
         maximize (reduce #'* (map 'list (lambda (c) (- (char-int c) (char-int #\0))) window))))
 
-(defun euler-9 (n)
+(defun euler-009 (n)
   "Find a Pythagorean triple whose sum is N"
   (loop for a from 1 upto n
         do (loop for b from (1+ a) upto n
@@ -164,9 +71,9 @@
                           for a2 = (* a a) and b2 = (* b b) and c2 = (* c c)
                           do (if (and (= (+ a2 b2) c2)
                                       (= (+ a b c) n))
-                                 (return-from euler-9 (* a b c)))))))
+                                 (return-from euler-009 (* a b c)))))))
 
-(defun euler-10 (n)
+(defun euler-010 (n)
   "Find sum of all primes below N"
   ; (reduce #'+ (eratosthenes-sieve n)))
   (loop with composites = (make-array (list n) :initial-element nil)
@@ -182,17 +89,18 @@
                  do (setf (aref composites idx) 1))
         sum i))
 
-(defun euler-12 (n)
+(defun euler-012 (n)
   "First triangle number with over N divisors"
   (loop for triangle-number = 1 then (+ triangle-number i) 
         for i from 2
         until (> (length (factors triangle-number)) n)
         finally (return triangle-number)))
 
-(defun euler-13 (numbers)
-  (reduce #'+ numbers))
+(defun euler-013 (filename)
+  (let ((numbers (mapcar #'parse-integer (read-from-file filename))))
+    (reduce #'+ numbers)))
 
-(defun euler-14 (n)
+(defun euler-014 (n)
   "Find input to Collatz function that produces the longest chain"
   (flet ((chain-length (n)
            ;; find number of iterations until C(n) reaches unity
@@ -208,21 +116,21 @@
                      max-input i))
           finally (return max-input))))
 
-(defun euler-15 (m n)
+(defun euler-015 (m n)
   "Number of paths from corner to corner of an MxN lattice"
   (loop for k from 0 upto n
         ;; C(n k): # ways to go right; C(m m-k): # ways to go down
         sum (* (choose n k) (choose m (- m k)))))
 
-(defun euler-16 (n)
+(defun euler-016 (n)
   "Sum of digits in 2^1000"
   (digit-sum n 10))
 
-(defun euler-20 (n)
+(defun euler-020 (n)
   "Sum of digits in 100!"
   (digit-sum n 10))
 
-(defun euler-21 (n)
+(defun euler-021 (n)
   "Sum of amicable numbers below N"
   (flet ((d (n) (reduce #'+ (proper-factors n))))
     (loop for a from 1 below n
@@ -230,14 +138,16 @@
           if (and (/= a b) (= (d b) a))
           sum a)))
 
-(defun euler-22 (filename)
+(defun euler-022 (filename)
+  "Total of all name scores in FILENAME"
   (flet ((char-score (c) (1+ (- (char-code c) (char-code #\A)))))
     (loop for name in (sort (read-from-file filename) #'string<)
           for i from 1
           for score = (reduce #'+ (map 'list (lambda (c) (char-score c)) name))
           sum (* i score))))
 
-(defun euler-25 (digits)
+(defun euler-025 (digits)
+  "Index of first Fibonacci number to contain 1000 digits"
   (loop for i from 2
         for a = 0 then b
         for b = 1 then c
@@ -246,129 +156,35 @@
         until (>= d digits)
         finally (return i)))
 
-(defparameter *euler-8-input*
-  "7316717653133062491922511967442657474235534919493496983520312774506326239578318016984801869478851843858615607891129494954595017379583319528532088055111254069874715852386305071569329096329522744304355766896648950445244523161731856403098711121722383113622298934233803081353362766142828064444866452387493035890729629049156044077239071381051585930796086670172427121883998797908792274921901699720888093776657273330010533678812202354218097512545405947522435258490771167055601360483958644670632441572215539753697817977846174064955149290862569321978468622482839722413756570560574902614079729686524145351004748216637048440319989000889524345065854122758866688116427171479924442928230863465674813919123162824586178664583591245665294765456828489128831426076900422421902267105562632111110937054421750694165896040807198403850962455444362981230987879927244284909188845801561660979191338754992005240636899125607176060588611646710940507754100225698315520005593572972571636269561882670428252483600823257530420752963450")
-
-(defparameter *euler-13-input*
-  '(37107287533902102798797998220837590246510135740250
-    46376937677490009712648124896970078050417018260538
-    74324986199524741059474233309513058123726617309629
-    91942213363574161572522430563301811072406154908250
-    23067588207539346171171980310421047513778063246676
-    89261670696623633820136378418383684178734361726757
-    28112879812849979408065481931592621691275889832738
-    44274228917432520321923589422876796487670272189318
-    47451445736001306439091167216856844588711603153276
-    70386486105843025439939619828917593665686757934951
-    62176457141856560629502157223196586755079324193331
-    64906352462741904929101432445813822663347944758178
-    92575867718337217661963751590579239728245598838407
-    58203565325359399008402633568948830189458628227828
-    80181199384826282014278194139940567587151170094390
-    35398664372827112653829987240784473053190104293586
-    86515506006295864861532075273371959191420517255829
-    71693888707715466499115593487603532921714970056938
-    54370070576826684624621495650076471787294438377604
-    53282654108756828443191190634694037855217779295145
-    36123272525000296071075082563815656710885258350721
-    45876576172410976447339110607218265236877223636045
-    17423706905851860660448207621209813287860733969412
-    81142660418086830619328460811191061556940512689692
-    51934325451728388641918047049293215058642563049483
-    62467221648435076201727918039944693004732956340691
-    15732444386908125794514089057706229429197107928209
-    55037687525678773091862540744969844508330393682126
-    18336384825330154686196124348767681297534375946515
-    80386287592878490201521685554828717201219257766954
-    78182833757993103614740356856449095527097864797581
-    16726320100436897842553539920931837441497806860984
-    48403098129077791799088218795327364475675590848030
-    87086987551392711854517078544161852424320693150332
-    59959406895756536782107074926966537676326235447210
-    69793950679652694742597709739166693763042633987085
-    41052684708299085211399427365734116182760315001271
-    65378607361501080857009149939512557028198746004375
-    35829035317434717326932123578154982629742552737307
-    94953759765105305946966067683156574377167401875275
-    88902802571733229619176668713819931811048770190271
-    25267680276078003013678680992525463401061632866526
-    36270218540497705585629946580636237993140746255962
-    24074486908231174977792365466257246923322810917141
-    91430288197103288597806669760892938638285025333403
-    34413065578016127815921815005561868836468420090470
-    23053081172816430487623791969842487255036638784583
-    11487696932154902810424020138335124462181441773470
-    63783299490636259666498587618221225225512486764533
-    67720186971698544312419572409913959008952310058822
-    95548255300263520781532296796249481641953868218774
-    76085327132285723110424803456124867697064507995236
-    37774242535411291684276865538926205024910326572967
-    23701913275725675285653248258265463092207058596522
-    29798860272258331913126375147341994889534765745501
-    18495701454879288984856827726077713721403798879715
-    38298203783031473527721580348144513491373226651381
-    34829543829199918180278916522431027392251122869539
-    40957953066405232632538044100059654939159879593635
-    29746152185502371307642255121183693803580388584903
-    41698116222072977186158236678424689157993532961922
-    62467957194401269043877107275048102390895523597457
-    23189706772547915061505504953922979530901129967519
-    86188088225875314529584099251203829009407770775672
-    11306739708304724483816533873502340845647058077308
-    82959174767140363198008187129011875491310547126581
-    97623331044818386269515456334926366572897563400500
-    42846280183517070527831839425882145521227251250327
-    55121603546981200581762165212827652751691296897789
-    32238195734329339946437501907836945765883352399886
-    75506164965184775180738168837861091527357929701337
-    62177842752192623401942399639168044983993173312731
-    32924185707147349566916674687634660915035914677504
-    99518671430235219628894890102423325116913619626622
-    73267460800591547471830798392868535206946944540724
-    76841822524674417161514036427982273348055556214818
-    97142617910342598647204516893989422179826088076852
-    87783646182799346313767754307809363333018982642090
-    10848802521674670883215120185883543223812876952786
-    71329612474782464538636993009049310363619763878039
-    62184073572399794223406235393808339651327408011116
-    66627891981488087797941876876144230030984490851411
-    60661826293682836764744779239180335110989069790714
-    85786944089552990653640447425576083659976645795096
-    66024396409905389607120198219976047599490197230297
-    64913982680032973156037120041377903785566085089252
-    16730939319872750275468906903707539413042652315011
-    94809377245048795150954100921645863754710598436791
-    78639167021187492431995700641917969777599028300699
-    15368713711936614952811305876380278410754449733078
-    40789923115535562561142322423255033685442488917353
-    44889911501440648020369068063960672322193204149535
-    41503128880339536053299340368006977710650566631954
-    81234880673210146739058568557934581403627822703280
-    82616570773948327592232845941706525094512325230608
-    22918802058777319719839450180888072429661980811197
-    77158542502016545090413245809786882778948721859617
-    72107838435069186155435662884062257473692284509516
-    20849603980134001723930671666823555245252804609722
-    53503534226472524250874054075591789781264330331690))
+(defun euler-031 (target coins)
+  "Number of ways to reach TARGET using any number of coins from COINS"
+  (labels ((ways (remaining max)
+             ;; # ways to reach REMAINING using coins no less than MAX
+             (if (zerop remaining)
+                 1
+                 (loop for c in coins
+                       unless (or (< c max) (> c remaining))
+                       sum (ways (- remaining c) c)))))
+    (ways target 0)))
 
 (defun main ()
-  (format t "01: ~D~%" (euler-1 1000))
-  (format t "02: ~D~%" (euler-2 4e6))
-  (format t "03: ~D~%" (euler-3 600851475143))
-  (format t "04: ~D~%" (euler-4 3))
-  (format t "05: ~D~%" (euler-5 20))
-  (format t "06: ~D~%" (euler-6 100))
-  (format t "07: ~D~%" (euler-7 10001))
-  (format t "08: ~D~%" (euler-8 *euler-8-input* 13))
-  (format t "09: ~D~%" (euler-9 1000))
-  (format t "10: ~D~%" (euler-10 2000000))
-  (format t "12: ~D~%" (euler-12 500))
-  (format t "13: ~D~%" (euler-13 *euler-13-input*))
-  (format t "14: ~D~%" (euler-14 1000000))
-  (format t "15: ~D~%" (euler-15 20 20))
-  (format t "16: ~D~%" (euler-16 (expt 2 1000)))
-  (format t "20: ~D~%" (euler-20 (factorial 100)))
-  (format t "21: ~D~%" (euler-21 10000))
-  (format t "22: ~D~%" (euler-22 "inputs/022.txt"))
-  (format t "25: ~D~%" (euler-25  1000)))
-
+  (format t "01: ~D~%" (euler-001 1000))
+  (format t "02: ~D~%" (euler-002 4e6))
+  (format t "03: ~D~%" (euler-003 600851475143))
+  (format t "04: ~D~%" (euler-004 3))
+  (format t "05: ~D~%" (euler-005 20))
+  (format t "06: ~D~%" (euler-006 100))
+  (format t "07: ~D~%" (euler-007 10001))
+  (format t "08: ~D~%" (euler-008 "inputs/008.txt" 13))
+  (format t "09: ~D~%" (euler-009 1000))
+  (format t "10: ~D~%" (euler-010 2000000))
+  (format t "12: ~D~%" (euler-012 500))
+  (format t "13: ~D~%" (euler-013 "inputs/013.txt"))
+  (format t "14: ~D~%" (euler-014 1000000))
+  (format t "15: ~D~%" (euler-015 20 20))
+  (format t "16: ~D~%" (euler-016 (expt 2 1000)))
+  (format t "20: ~D~%" (euler-020 (factorial 100)))
+  (format t "21: ~D~%" (euler-021 10000))
+  (format t "22: ~D~%" (euler-022 "inputs/022.txt"))
+  (format t "25: ~D~%" (euler-025 1000)) 
+  (format t "31: ~D~%" (euler-031 200 '(1 2 5 10 20 50 100 200))))
