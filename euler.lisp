@@ -1,5 +1,12 @@
 ;;;; euler.lisp
 
+(ql:quickload :iterate)
+
+(defpackage #:euler
+  (:use :cl :iterate))
+
+(in-package #:euler)
+
 (load "util.lisp")
 
 (defun euler-001 (n)
@@ -146,6 +153,31 @@
           for score = (reduce #'+ (map 'list (lambda (c) (char-score c)) name))
           sum (* i score))))
 
+(defun euler-023 ()
+  "Find the sum of all positive integers which cannot be written as the sum of two abundant numbers"
+  (let ((abundable-numbers (make-hash-table))
+        abundant-numbers)
+
+    (flet ((deficient-p (n)
+             (> n (reduce #'+ (proper-factors n))))
+           (abundant-p (n)
+             (< n (reduce #'+ (proper-factors n)))))
+
+      ;; first generate all abundant numbers less than 28123
+      ;; TODO: this bound can probably be improved using some thinking...
+      (setf abundant-numbers (loop for i from 1 upto 28123
+                               if (abundant-p i)
+                               collect i))
+
+      ;; mark all sums of two abundant numbers
+      (loop for i in abundant-numbers
+            do (loop for j in abundant-numbers
+                 do (setf (gethash (+ i j) abundable-numbers) t)))
+
+      (loop for i from 1 upto 28123
+            unless (gethash i abundable-numbers)
+            sum i))))
+
 (defun euler-025 (digits)
   "Index of first Fibonacci number to contain 1000 digits"
   (loop for i from 2
@@ -157,7 +189,6 @@
         finally (return i)))
 
 (defun euler-031-recursive (target coins)
-  "Number of ways to reach TARGET using any number of coins from COINS"
   (labels ((ways (remaining max)
              ;; # ways to reach REMAINING using coins no less than MAX
              (if (zerop remaining)
@@ -178,6 +209,7 @@
     (aref ways target)))
 
 (defun euler-031 (target coins)
+  "Number of ways to reach TARGET using any number of coins from COINS"
   (euler-031-dp target coins))
 
 (defun euler-047 (n)
@@ -206,6 +238,22 @@
         if (every #'palindromep representations)
         sum i))
 
+(defun euler-039 (upper-bound)
+  "Find the parameter p <= UPPER-BOUND of a right-angled triangle maximising the number of distinct solutions, i.e. a,b,c such that a+b+c=p"
+  (flet ((count-solutions (p)
+           (loop with solutions = 0
+                 for c from (floor p 3) upto p
+                 do (loop for b from 1 upto c
+                          do (loop for a from 1 upto b
+                                   if (and (= (* c c) (+ (* a a) (* b b)))
+                                           (= p (+ a b c)))
+                                   do (incf solutions)))
+                 finally (return solutions))))
+
+    ;; TODO: optimize
+    (iter (for p from 120 to upper-bound)
+          (finding p maximizing (count-solutions p)))))
+
 (defun main ()
   (format t "01: ~D~%" (euler-001 1000))
   (format t "02: ~D~%" (euler-002 4e6))
@@ -225,32 +273,9 @@
   (format t "20: ~D~%" (euler-020 (factorial 100)))
   (format t "21: ~D~%" (euler-021 10000))
   (format t "22: ~D~%" (euler-022 "inputs/022.txt"))
+  (format t "23: ~D~%" (euler-023))
   (format t "25: ~D~%" (euler-025 1000)) 
   (format t "31: ~D~%" (euler-031 200 #(1 2 5 10 20 50 100 200)))
   (format t "35: ~D~%" (euler-035 1000000))
-  (format t "36: ~D~%" (euler-036 1000000 '(2 10))))
-
-;; FIXME
-
-(defun euler-23 ()
-  (let (abundant-numbers
-        abundable-numbers)
-    (flet ((deficient-p (n)
-             (> n (reduce #'+ (proper-factors n))))
-           (abundant-p (n)
-             (< n (reduce #'+ (proper-factors n)))))
-
-      ;; first generate all abundant numbers less than 28123...
-      (setf abundant-numbers (loop for i from 1 upto 16000
-                               if (abundant-p i)
-                               collect i))
-      (setf abundable-numbers (loop with abundant-sums
-                                for i in abundant-numbers
-                                do (loop for j in abundant-numbers
-                                         do (push (+ i j) abundant-sums))
-                                finally (return (sort (remove-duplicates abundant-sums) #'<))))
-      (loop for i from 1 upto 28123
-            with nums = abundable-numbers
-            if (= i (first nums))
-            do (pop nums)
-            else sum i))))
+  (format t "36: ~D~%" (euler-036 1000000 '(2 10)))
+  (format t "39: ~D~%" (euler-039 1000)))
