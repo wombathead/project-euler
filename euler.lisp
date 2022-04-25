@@ -28,7 +28,7 @@
     (loop for i from smallest upto largest
           maximize (loop for j from smallest upto largest
                          for product = (* i j)
-                         if (palindromep product)
+                         if (number-palindrome-p product)
                          maximize product))))
 
 (defun euler-005 (n)
@@ -191,11 +191,20 @@
 (defun euler-035 (n)
   "Return all circular primes below N"
   ;; TODO: only consider numbers only containing 1,3,7,9
+  ;; TODO: test primality using a sieve
   (loop for i from 3 below n by 2
         count (every (lambda (d) (primep (digits-to-number d))) (digit-rotations i))
         into circular-primes
         ;; finally account for 2, which is circular
         finally (return (1+ circular-primes))))
+
+(defun euler-036 (n bases)
+  "Find sum of numbers below N that are palindromic in base 2 and base 10"
+  ;; TODO: generate the palindromic numbers rather than guessing and checking
+  (loop for i from 1 below n
+        for representations = (mapcar (lambda (b) (to-base i b)) bases)
+        if (every #'palindromep representations)
+        sum i))
 
 (defun main ()
   (format t "01: ~D~%" (euler-001 1000))
@@ -217,7 +226,9 @@
   (format t "21: ~D~%" (euler-021 10000))
   (format t "22: ~D~%" (euler-022 "inputs/022.txt"))
   (format t "25: ~D~%" (euler-025 1000)) 
-  (format t "31: ~D~%" (euler-031 200 #(1 2 5 10 20 50 100 200))))
+  (format t "31: ~D~%" (euler-031 200 #(1 2 5 10 20 50 100 200)))
+  (format t "35: ~D~%" (euler-035 1000000))
+  (format t "36: ~D~%" (euler-036 1000000 '(2 10))))
 
 ;; FIXME
 
