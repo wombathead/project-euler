@@ -254,6 +254,25 @@
     (iter (for p from 120 to upper-bound)
           (finding p maximizing (count-solutions p)))))
 
+(defun euler-042 (words-file)
+  "Count the number of triangle words appearing in WORDS-FILE"
+  (labels ((letter-value (char)
+             (1+ (- (char-code (char-downcase char)) (char-code #\a))))
+
+           (word-score (word)
+             (reduce #'+ (map 'list #'letter-value word))))
+
+    (let ((triangle-numbers (make-hash-table))
+          (upper-bound (loop for word in (read-from-file words-file)
+                             maximize (word-score word))))
+      (loop for n from 1
+        for tn = (* 1/2 n (1+ n))
+        until (> tn upper-bound)
+        do (setf (gethash tn triangle-numbers) t))
+      
+      (loop for word in (read-from-file words-file)
+        count (gethash (word-score word) triangle-numbers)))))
+
 (defun main ()
   (format t "01: ~D~%" (euler-001 1000))
   (format t "02: ~D~%" (euler-002 4e6))
@@ -278,4 +297,5 @@
   (format t "31: ~D~%" (euler-031 200 #(1 2 5 10 20 50 100 200)))
   (format t "35: ~D~%" (euler-035 1000000))
   (format t "36: ~D~%" (euler-036 1000000 '(2 10)))
-  (format t "39: ~D~%" (euler-039 1000)))
+  (format t "39: ~D~%" (euler-039 1000))
+  (format t "42: ~D~%" (euler-042 "inputs/words.txt")))
