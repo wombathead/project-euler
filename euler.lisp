@@ -28,7 +28,7 @@
     (loop for i from smallest upto largest
           maximize (loop for j from smallest upto largest
                          for product = (* i j)
-                         if (palindrome-p product)
+                         if (palindromep product)
                          maximize product))))
 
 (defun euler-005 (n)
@@ -48,7 +48,7 @@
   (if (< n 2)
       2
       (loop for i from 3 by 2
-            for is-prime = (prime-p i)
+            for is-prime = (primep i)
             for p = (if is-prime i p)    
             if is-prime
             count is-prime into n-primes
@@ -124,11 +124,11 @@
 
 (defun euler-016 (n)
   "Sum of digits in 2^1000"
-  (digit-sum n 10))
+  (reduce #'+ (digits-of n 10)))
 
 (defun euler-020 (n)
   "Sum of digits in 100!"
-  (digit-sum n 10))
+  (reduce #'+ (digits-of n 10)))
 
 (defun euler-021 (n)
   "Sum of amicable numbers below N"
@@ -156,7 +156,7 @@
         until (>= d digits)
         finally (return i)))
 
-(defun euler-031 (target coins)
+(defun euler-031-recursive (target coins)
   "Number of ways to reach TARGET using any number of coins from COINS"
   (labels ((ways (remaining max)
              ;; # ways to reach REMAINING using coins no less than MAX
@@ -166,6 +166,36 @@
                        unless (or (< c max) (> c remaining))
                        sum (ways (- remaining c) c)))))
     (ways target 0)))
+
+(defun euler-031-dp (target coins)
+  (let ((ways (make-array (1+ target)))
+        (n (length coins)))
+    (setf (aref ways 0) 1)
+    (loop for i from 0 below n
+          do (loop for j from (aref coins i) upto target
+                   do (setf (aref ways j) (+ (aref ways j)
+                                             (aref ways (- j (aref coins i)))))))
+    (aref ways target)))
+
+(defun euler-031 (target coins)
+  (euler-031-dp target coins))
+
+(defun euler-047 (n)
+  "Find the first N consecutive numbers with distinct prime factors"
+  (loop for i from 2
+        for factor-lists = (loop for j from i upto (+ i (1- n))
+                                 collect (remove-duplicates (prime-factors j)))
+        until (every (lambda (l) (= n (length l))) factor-lists)
+        finally (return i)))
+
+(defun euler-035 (n)
+  "Return all circular primes below N"
+  ;; TODO: only consider numbers only containing 1,3,7,9
+  (loop for i from 3 below n by 2
+        count (every (lambda (d) (primep (digits-to-number d))) (digit-rotations i))
+        into circular-primes
+        ;; finally account for 2, which is circular
+        finally (return (1+ circular-primes))))
 
 (defun main ()
   (format t "01: ~D~%" (euler-001 1000))
@@ -187,4 +217,29 @@
   (format t "21: ~D~%" (euler-021 10000))
   (format t "22: ~D~%" (euler-022 "inputs/022.txt"))
   (format t "25: ~D~%" (euler-025 1000)) 
-  (format t "31: ~D~%" (euler-031 200 '(1 2 5 10 20 50 100 200))))
+  (format t "31: ~D~%" (euler-031 200 #(1 2 5 10 20 50 100 200))))
+
+;; FIXME
+
+(defun euler-23 ()
+  (let (abundant-numbers
+        abundable-numbers)
+    (flet ((deficient-p (n)
+             (> n (reduce #'+ (proper-factors n))))
+           (abundant-p (n)
+             (< n (reduce #'+ (proper-factors n)))))
+
+      ;; first generate all abundant numbers less than 28123...
+      (setf abundant-numbers (loop for i from 1 upto 16000
+                               if (abundant-p i)
+                               collect i))
+      (setf abundable-numbers (loop with abundant-sums
+                                for i in abundant-numbers
+                                do (loop for j in abundant-numbers
+                                         do (push (+ i j) abundant-sums))
+                                finally (return (sort (remove-duplicates abundant-sums) #'<))))
+      (loop for i from 1 upto 28123
+            with nums = abundable-numbers
+            if (= i (first nums))
+            do (pop nums)
+            else sum i))))

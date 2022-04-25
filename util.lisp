@@ -11,9 +11,35 @@
 (defun print-hash-table (ht)
   (maphash (lambda (k v) (format t "~A: ~A~%" k v)) ht))
 
+;;; strings
+
+(defun digits-of (n &optional (base 10))
+  "Collect the digits of N written in base BASE into a list"
+  (loop for a = n then q
+        for (q r) = (multiple-value-list (floor a base))
+        collect r into digits
+        until (zerop q)
+        finally (return (reverse digits))))
+
+(defun digits-to-number (digits &optional (base 10))
+  "Convert list of DIGITS in base BASE to a number"
+  (loop for d in digits
+        for n = d then (+ (* base n) d)
+        finally (return n)))
+
+(defun palindromep (n)
+  (let ((str (write-to-string n)))
+    (string= str (reverse str))))
+
+(defun digit-rotations (n)
+  (loop with digits = (digits-of n)
+        for d in digits
+        for rotation = (append (rest digits) (list d)) then (append (rest rotation) (list d))
+        collect rotation))
+
 ;;; number theory
 
-(defun prime-p (n)
+(defun primep (n)
   (case n
     (1 nil)
     (2 t)
@@ -40,10 +66,11 @@
 
 (defun prime-factors (n)
   "Return the prime factorization of N as a list"
-  (loop for m = n then (/ m k)
-        for k = (pollard-rho m)
-        collect k  
-        until (= k m)))
+  (when (plusp n)
+    (loop for m = n then (/ m k)
+          for k = (pollard-rho m)
+          collect k  
+          until (= k m))))
 
 (defun factors (n)
   "Return all factors of N"
@@ -60,23 +87,12 @@
 (defun perfect-number-p (n)
   (= n (reduce #'+ (proper-factors n))))
 
-(defun digit-sum (n &optional base)
-  "Sum of digits of N represented in BASE"
-  (loop with b = (if base base 10)
-        for m = n then q
-        for (q r) = (multiple-value-list (floor m b))
-        sum r  
-        until (zerop q)))
-
-(defun palindrome-p (n)
-  (let ((str (write-to-string n)))
-    (string= str (reverse str))))
-
-(defun eratosthenes-sieve (n)
+(defun eratosthenes-sieve (n &optional (return-type 'list))
   "Return list of all primes below N"
   ;; TODO: can optimise by only storing odd numbers (since no evens are prime
   ;; except for 2) and using index maths
-  (loop with composites = (make-array (list n) :initial-element nil)
+  (loop with composites = (make-array n :initial-element nil)
+        with primes-array = (make-array n :initial-element nil)
         for i = 2 then (loop for j from (1+ i) below n
                              unless (aref composites j)
                              minimize j)
@@ -84,8 +100,13 @@
         do (loop for j from 1 upto (floor n i)
                  for idx = (* i j)
                  if (< idx n)
-                 do (setf (aref composites idx) 1))
-        collect i))
+                 do (setf (aref composites idx) t))
+
+        if (eq return-type 'list)
+        collect i into primes-list
+        else
+        do (setf (aref primes-array i) t)
+        finally (return (if (eq return-type 'list) primes-list primes-array))))
 
 (defun factorial (n)
   "N! = N * (N-1) * ... * 2 * 1"
