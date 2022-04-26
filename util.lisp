@@ -11,6 +11,10 @@
 (defun print-hash-table (ht)
   (maphash (lambda (k v) (format t "~A: ~A~%" k v)) ht))
 
+(defun integralp (n)
+  "Return T if N represents an integer"
+  (= (floor n) (ceiling n)))
+
 ;;; strings
 
 (defun digits-of (n &optional (base 10))
@@ -127,8 +131,49 @@
   (/ (factorial n) (* (factorial (- n k)) (factorial k))))
 
 (defun binomial (x y n)
+  "Compute (x + y)^n"
   (loop for k from 0 upto n
         sum (* (choose n k) (expt x k) (expt y (- n k)))))
+
+(defun polynomial (x &rest coeffs)
+  "Compute the n-degree polynomial p(n) = a_n x^n + ... + a_1 x + a_0 where COEFFS = '(a_n ... a_1 a_0)"
+  (loop for a in coeffs
+        for p = a then (+ (* p x) a)
+        finally (return p)))
+
+(defun quadratic-roots (a b c)
+  (let ((discriminant (- (* b b) (* 4 a c))))
+    (values (/ (+ (- b) (sqrt discriminant)) (* 2 a))
+            (/ (- (- b) (sqrt discriminant)) (* 2 a)))))
+
+(defun quadratic-inverse (y a b c)
+  "Inverse of the quadratic function y = a x^2 + b x + c"
+  ;; TODO: remove y term (incorporate into c term)
+  (let ((sqrt-term (sqrt (+ (* (/ 1 a) (- y c))
+                            (expt (/ b (* 2 a)) 2)))))
+    (values (+ (- (/ b (* 2 a))) sqrt-term)
+            (- (- (/ b (* 2 a))) sqrt-term))))
+
+(defun triangle-n (n)
+  "Compute the Nth triangle number"
+  (polynomial n 1/2 1/2 0))
+
+(defun inverse-triangle (y)
+  (quadratic-inverse y 1/2 1/2 0))
+
+(defun pentagonal-n (n)
+  "Compute the Nth pentagonal number"
+  (polynomial n 3/2 -1/2 0))
+
+(defun inverse-pentagonal (y)
+  (quadratic-inverse y 3/2 -1/2 0))
+
+(defun hexagonal-n (n)
+  "Compute the Nth hexagonal number"
+  (polynomial n 2 -1 0))
+
+(defun inverse-hexagonal (y)
+  (quadratic-inverse y 2 -1 0))
 
 ;;; graphs
 

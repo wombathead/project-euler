@@ -273,6 +273,15 @@
       (loop for word in (read-from-file words-file)
         count (gethash (word-score word) triangle-numbers)))))
 
+(defun euler-045 (lower-bound)
+  "Return the smallest number greater than LOWER-BOUND that is simultaneously a triangle, pentagonal, and hexagonal number"
+  (loop for hn from (1+ (floor (inverse-hexagonal lower-bound)))
+        for n = (hexagonal-n hn)
+        for pn = (inverse-pentagonal n) and tn = (inverse-triangle n)
+        until (and (every #'integralp (list pn tn))
+                   (= n (pentagonal-n (floor pn)) (triangle-n (floor tn))))
+        finally (return n)))
+
 (defun main ()
   (format t "01: ~D~%" (euler-001 1000))
   (format t "02: ~D~%" (euler-002 4e6))
@@ -298,4 +307,5 @@
   (format t "35: ~D~%" (euler-035 1000000))
   (format t "36: ~D~%" (euler-036 1000000 '(2 10)))
   (format t "39: ~D~%" (euler-039 1000))
-  (format t "42: ~D~%" (euler-042 "inputs/words.txt")))
+  (format t "42: ~D~%" (euler-042 "inputs/words.txt"))
+  (format t "45: ~D~%" (euler-042 40755)))
