@@ -1,4 +1,4 @@
-;;;; euler.lisp
+;,;;; euler.lisp
 
 (ql:quickload :iterate)
 
@@ -240,6 +240,7 @@
 
 (defun euler-039 (upper-bound)
   "Find the parameter p <= UPPER-BOUND of a right-angled triangle maximising the number of distinct solutions, i.e. a,b,c such that a+b+c=p"
+  ;; TODO: far too slow -- optimise
   (flet ((count-solutions (p)
            (loop with solutions = 0
                  for c from (floor p 3) upto p
@@ -275,12 +276,21 @@
 
 (defun euler-045 (lower-bound)
   "Return the smallest number greater than LOWER-BOUND that is simultaneously a triangle, pentagonal, and hexagonal number"
+  ;; no need to check triangle numbers since every hexagonal number is a
+  ;; triangle number
   (loop for hn from (1+ (floor (inverse-hexagonal lower-bound)))
         for n = (hexagonal-n hn)
-        for pn = (inverse-pentagonal n) and tn = (inverse-triangle n)
-        until (and (every #'integralp (list pn tn))
-                   (= n (pentagonal-n (floor pn)) (triangle-n (floor tn))))
+        for pn = (inverse-pentagonal n)
+        until (and (integralp pn) (= n (pentagonal-n (floor pn))))
         finally (return n)))
+
+(defun euler-052 (k)
+  "Find the smallest number x such that 2x,...,kx all contain the same digits"
+  (loop for i from 1
+        for nums = (mapcar (lambda (n) (* n i)) (loop for i from 2 upto k collect i))
+        for digits = (mapcar (lambda (d) (sort d #'<)) (mapcar #'digits-of nums))
+        until (every (lambda (d) (equal (first digits) d)) (rest digits))
+        finally (return i)))
 
 (defun main ()
   (format t "01: ~D~%" (euler-001 1000))
@@ -308,4 +318,5 @@
   (format t "36: ~D~%" (euler-036 1000000 '(2 10)))
   (format t "39: ~D~%" (euler-039 1000))
   (format t "42: ~D~%" (euler-042 "inputs/words.txt"))
-  (format t "45: ~D~%" (euler-042 40755)))
+  (format t "45: ~D~%" (euler-045 40755))
+  (format t "52: ~D~%" (euler-052 6)))

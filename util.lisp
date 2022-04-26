@@ -12,8 +12,9 @@
   (maphash (lambda (k v) (format t "~A: ~A~%" k v)) ht))
 
 (defun integralp (n)
-  "Return T if N represents an integer"
-  (= (floor n) (ceiling n)))
+  "Return (floor N) if N represents an integer otherwise NIL"
+  (when (= (floor n) (ceiling n))
+      (floor n)))
 
 ;;; strings
 
@@ -156,6 +157,7 @@
 
 (defun triangle-n (n)
   "Compute the Nth triangle number"
+  ;; T(n) = n(n+1)/2
   (polynomial n 1/2 1/2 0))
 
 (defun inverse-triangle (y)
@@ -163,6 +165,7 @@
 
 (defun pentagonal-n (n)
   "Compute the Nth pentagonal number"
+  ;; P(n) = n(3n-1)/2
   (polynomial n 3/2 -1/2 0))
 
 (defun inverse-pentagonal (y)
@@ -170,7 +173,8 @@
 
 (defun hexagonal-n (n)
   "Compute the Nth hexagonal number"
-  (polynomial n 2 -1 0))
+  ;; H(n) = n(2n-1)
+  (triangle-n (1- (* 2 n))))
 
 (defun inverse-hexagonal (y)
   (quadratic-inverse y 2 -1 0))
