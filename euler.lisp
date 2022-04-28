@@ -292,6 +292,13 @@
         until (every (lambda (d) (equal (first digits) d)) (rest digits))
         finally (return i)))
 
+(defun euler-053 (threshold upper)
+  "Count the number of times nCr exceeds THRESHOLD for 1<=n<=UPPER"
+  ;; TODO: obviously this can be hugely optimised
+  (loop for n from 1 upto upper
+        sum (loop for r from 0 upto n
+                  count (> (choose n r) threshold))))
+
 (defun main ()
   (format t "01: ~D~%" (euler-001 1000))
   (format t "02: ~D~%" (euler-002 4e6))
@@ -315,8 +322,10 @@
   (format t "25: ~D~%" (euler-025 1000)) 
   (format t "31: ~D~%" (euler-031 200 #(1 2 5 10 20 50 100 200)))
   (format t "35: ~D~%" (euler-035 1000000))
-  (format t "36: ~D~%" (euler-036 1000000 '(2 10)))
+  ; (format t "36: ~D~%" (euler-036 1000000 '(2 10)))
   (format t "39: ~D~%" (euler-039 1000))
   (format t "42: ~D~%" (euler-042 "inputs/words.txt"))
   (format t "45: ~D~%" (euler-045 40755))
-  (format t "52: ~D~%" (euler-052 6)))
+  (format t "52: ~D~%" (euler-052 6))
+  (format t "53: ~D~%" (euler-053 1000000 100))
+  )
