@@ -1,6 +1,7 @@
 ;,;;; euler.lisp
 
 (ql:quickload :iterate)
+(ql:quickload :str)
 
 (defpackage #:euler
   (:use :cl :iterate))
@@ -312,6 +313,16 @@
     (loop for i from 2 below upper
           count (number-chain i))))
 
+(defun euler-102 (filename)
+  "Return the number of times a triangle from FILENAME contains the origin in its interior"
+  (loop with origin = #(0 0 0)
+        for line in (read-from-file filename)
+        for (ax ay bx by cx cy) = (mapcar #'parse-integer (str:split "," line))
+        for a = (vector ax ay 0)
+        and b = (vector bx by 0)
+        and c = (vector cx cy 0)
+        count (triangle-contains-point-p a b c origin)))
+
 (defun solve (problem-no function &rest args)
   (format t "~D: ~D~%" problem-no (apply function args)))
 
@@ -339,11 +350,12 @@
   (solve "023" #'euler-023)
   (solve "025" #'euler-025 1000) 
   (solve "031" #'euler-031 200 #(1 2 5 10 20 50 100 200))
-  ; (solve "035" #'euler-035 1000000)
+  (solve "035" #'euler-035 1000000)
   (solve "036" #'euler-036 1000000 '(2 10))
-  (solve "039" #'euler-039 1000)
+  ; (solve "039" #'euler-039 1000)
   (solve "042" #'euler-042 "inputs/words.txt")
   (solve "045" #'euler-045 40755)
   (solve "052" #'euler-052 6)
   (solve "053" #'euler-053 1000000 100)
-  (solve "082" #'euler-092 10e6))
+  (solve "092" #'euler-092 10e6)
+  (solve "102" #'euler-102 "inputs/102.txt"))

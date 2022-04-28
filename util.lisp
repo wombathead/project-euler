@@ -179,6 +179,42 @@
 (defun inverse-hexagonal (y)
   (quadratic-inverse y 2 -1 0))
 
+;;; geometry
+
+(defun vector-add (u v)
+  (map 'vector #'+ u v))
+
+(defun vector-minus (u v)
+  (map 'vector #'- u v))
+
+(defun lp-norm (p u)
+  (expt (reduce #'+ (map 'vector (lambda (ui) (expt (abs ui) p)) u))
+        (/ 1 p)))
+
+(defun dot (u v)
+  "Dot product of U and V"
+  (reduce #'+ (map 'vector (lambda (ui vi) (* ui vi)) u v)))
+
+(defun cross (u v)
+  "Vector cross product of U and V"
+  (let ((u1 (aref u 0)) (u2 (aref u 1)) (u3 (aref u 2))
+        (v1 (aref v 0)) (v2 (aref v 1)) (v3 (aref v 2)))
+    (vector (- (* u2 v3) (* u3 v2))
+            (- (* u3 v1) (* u1 v3))
+            (- (* u1 v2) (* u2 v1)))))
+
+(defun triangle-contains-point-p (a b c p)
+  "Return T if point P is below the halfspace defined by vector B-A"
+  (let* ((a (vector-minus a p)) ; first translate triangle to P
+         (b (vector-minus b p))
+         (c (vector-minus c p))
+         (u (cross b c))        ; normal of PBC
+         (v (cross c a))        ; normal of PCA
+         (w (cross a b)))       ; normal of PAB
+    
+    (not (or (minusp (dot u v))
+             (minusp (dot u w))))))
+
 ;;; graphs
 
 #|
