@@ -18,6 +18,19 @@
 
 ;;; strings
 
+(defun first-digits-of (n d &optional (base 10))
+  (let ((digits (1+ (floor (log n base)))))
+    (unless (minusp d)
+      ;; TODO: get this working for bases other than 10
+      (format nil "~D" (floor n (expt base (max (- digits d) 0)))))))
+
+(defun last-digits-of (n d &optional (base 10))
+  ;; TODO: get this working for bases other than 10
+  (format
+    nil
+    (format nil "~~~D,'0D" d)
+    (nth-value 1 (floor n (expt base d)))))
+
 (defun digits-of (n &optional (base 10))
   "Collect the digits of N written in base BASE into a list"
   (loop for a = n then q

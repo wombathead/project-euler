@@ -1,10 +1,13 @@
 ;,;;; euler.lisp
 
+(declaim (optimize (speed 3)))
+
 (ql:quickload :iterate)
 (ql:quickload :str)
 
 (defpackage #:euler
-  (:use :cl :iterate))
+  (:use :cl :iterate)
+  (:export :main))
 
 (in-package #:euler)
 
@@ -104,9 +107,10 @@
         until (> (length (factors triangle-number)) n)
         finally (return triangle-number)))
 
-(defun euler-013 (filename)
+(defun euler-013 (filename D)
+  "Return the first D digits of the sum of numbers given in FILENAME"
   (let ((numbers (mapcar #'parse-integer (read-from-file filename))))
-    (reduce #'+ numbers)))
+    (first-digits-of (reduce #'+ numbers) d)))
 
 (defun euler-014 (n)
   "Find input to Collatz function that produces the longest chain"
@@ -200,14 +204,13 @@
     (ways target 0)))
 
 (defun euler-031-dp (target coins)
-  (let ((ways (make-array (1+ target)))
-        (n (length coins)))
-    (setf (aref ways 0) 1)
-    (loop for i from 0 below n
-          do (loop for j from (aref coins i) upto target
-                   do (setf (aref ways j) (+ (aref ways j)
-                                             (aref ways (- j (aref coins i)))))))
-    (aref ways target)))
+  (loop with ways = (make-array (1+ target) :initial-element 0) 
+        initially (setf (aref ways 0) 1)
+        for c across coins
+        do (loop for i from c upto target
+                 do (setf (aref ways i) (+ (aref ways i)
+                                           (aref ways (- i c)))))
+        finally (return (aref ways target))))
 
 (defun euler-031 (target coins)
   "Number of ways to reach TARGET using any number of coins from COINS"
@@ -220,6 +223,12 @@
                                  collect (remove-duplicates (prime-factors j)))
         until (every (lambda (l) (= n (length l))) factor-lists)
         finally (return i)))
+
+(defun euler-048 (n d)
+  "Find the last D digits of 1 + 2^2 + 3^3 + ... + n^n"
+  (flet ((expt-sum (n)
+           (reduce #'+ (mapcar (lambda (i) (expt i i)) (loop for i from 1 upto n collect i)))))
+    (last-digits-of (expt-sum n) d)))
 
 (defun euler-035 (n)
   "Return all circular primes below N"
@@ -323,39 +332,41 @@
         and c = (vector cx cy 0)
         count (triangle-contains-point-p a b c origin)))
 
-(defun solve (problem-no function &rest args)
-  (format t "~D: ~D~%" problem-no (apply function args)))
+(defun solve (problem-no fn &rest args)
+  (format t "~D: ~D~%" problem-no (apply fn args)))
 
 (defun main ()
   ;(format t "01: ~D~%" (euler-001 1000))
-
-  (solve "001" #'euler-001 1000)
-  (solve "002" #'euler-002 4e6)
-  (solve "003" #'euler-003 600851475143)
-  (solve "004" #'euler-004 3)
-  (solve "005" #'euler-005 20)
-  (solve "006" #'euler-006 100)
-  (solve "007" #'euler-007 10001)
-  (solve "008" #'euler-008 "inputs/008.txt" 13)
-  (solve "009" #'euler-009 1000)
-  (solve "010" #'euler-010 2000000)
-  (solve "012" #'euler-012 500)
-  (solve "013" #'euler-013 "inputs/013.txt")
-  (solve "014" #'euler-014 1000000)
-  (solve "015" #'euler-015 20 20)
-  (solve "016" #'euler-016 (expt 2 1000))
-  (solve "020" #'euler-020 (factorial 100))
-  (solve "021" #'euler-021 10000)
-  (solve "022" #'euler-022 "inputs/022.txt")
-  (solve "023" #'euler-023)
-  (solve "025" #'euler-025 1000) 
-  (solve "031" #'euler-031 200 #(1 2 5 10 20 50 100 200))
-  (solve "035" #'euler-035 1000000)
-  (solve "036" #'euler-036 1000000 '(2 10))
-  ; (solve "039" #'euler-039 1000)
-  (solve "042" #'euler-042 "inputs/words.txt")
-  (solve "045" #'euler-045 40755)
-  (solve "052" #'euler-052 6)
-  (solve "053" #'euler-053 1000000 100)
-  (solve "092" #'euler-092 10e6)
-  (solve "102" #'euler-102 "inputs/102.txt"))
+  (time
+    (progn
+      (solve "001" #'euler-001 1000)
+      (solve "002" #'euler-002 4e6)
+      (solve "003" #'euler-003 600851475143)
+      (solve "004" #'euler-004 3)
+      (solve "005" #'euler-005 20)
+      (solve "006" #'euler-006 100)
+      (solve "007" #'euler-007 10001)
+      (solve "008" #'euler-008 "inputs/008.txt" 13)
+      (solve "009" #'euler-009 1000)
+      (solve "010" #'euler-010 2000000)
+      (solve "012" #'euler-012 500)
+      (solve "013" #'euler-013 "inputs/013.txt" 10)
+      (solve "014" #'euler-014 1000000)
+      (solve "015" #'euler-015 20 20)
+      (solve "016" #'euler-016 (expt 2 1000))
+      (solve "020" #'euler-020 (factorial 100))
+      (solve "021" #'euler-021 10000)
+      (solve "022" #'euler-022 "inputs/022.txt")
+      (solve "023" #'euler-023)
+      (solve "025" #'euler-025 1000) 
+      (solve "031" #'euler-031 200 #(1 2 5 10 20 50 100 200))
+      (solve "035" #'euler-035 1000000)
+      (solve "036" #'euler-036 1000000 '(2 10))
+      ; (solve "039" #'euler-039 1000)
+      (solve "042" #'euler-042 "inputs/words.txt")
+      (solve "045" #'euler-045 40755)
+      (solve "048" #'euler-048 1000 10)
+      (solve "052" #'euler-052 6)
+      (solve "053" #'euler-053 1000000 100)
+      (solve "092" #'euler-092 10e6)
+      (solve "102" #'euler-102 "inputs/102.txt"))))
