@@ -16,6 +16,9 @@
   (when (= (floor n) (ceiling n))
       (floor n)))
 
+(defun increasingp (list) (every #'<= list (rest list)))
+(defun decreasingp (list) (every #'>= list (rest list)))
+
 ;;; strings
 
 (defun first-digits-of (n d &optional (base 10))
@@ -191,6 +194,18 @@
 
 (defun inverse-hexagonal (y)
   (quadratic-inverse y 2 -1 0))
+
+(defun bouncyp (n &optional (base 10))
+  "N is bouncy in base BASE if the digits form neither an increasing nor a decreasing sequence"
+  (loop with increasesp and decreasesp
+        for m = n then (floor m base)
+        for prev-digit = (mod m base) then digit
+        for digit = (mod m base)
+        until (zerop m)
+        if (< digit prev-digit) do (setf increasesp t)
+        if (> digit prev-digit) do (setf decreasesp t)
+        if (and increasesp decreasesp) return t
+        finally (return nil)))
 
 ;;; geometry
 

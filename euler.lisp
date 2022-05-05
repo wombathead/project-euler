@@ -332,6 +332,13 @@
         and c = (vector cx cy 0)
         count (triangle-contains-point-p a b c origin)))
 
+(defun euler-112 (percentage)
+  "Find the least number for which the proportion of bouncy numbers is exactly PERCENTAGE"
+  (loop for i from 1
+        for bouncies = 0 then (+ bouncies (if (bouncyp i) 1 0))
+        until (= percentage (* 100 (/ bouncies i)))
+        finally (return i)))
+
 (defun solve (problem-no fn &rest args)
   (format t "~D: ~D~%" problem-no (apply fn args)))
 
@@ -369,4 +376,5 @@
       (solve "052" #'euler-052 6)
       (solve "053" #'euler-053 1000000 100)
       (solve "092" #'euler-092 10e6)
-      (solve "102" #'euler-102 "inputs/102.txt"))))
+      (solve "102" #'euler-102 "inputs/102.txt")   
+      (solve "112" #'euler-112 99))))
