@@ -201,6 +201,14 @@
                  do (setf (gethash (expt x y) terms) t))
         finally (return (hash-table-count terms))))
 
+(defun euler-030 (n)
+  "Sum of all numbers that can be written as the sum of fifth powers of their digits"
+  (loop for i from 2 upto 999999
+        for digits = (digits-of i)
+        for sum-of-powers = (reduce #'+ (mapcar (lambda (d) (expt d n)) digits))
+        if (= i sum-of-powers)
+        sum i))
+
 (defun euler-031-recursive (target coins)
   (labels ((ways (remaining max)
              ;; # ways to reach REMAINING using coins no less than MAX
