@@ -193,6 +193,14 @@
         until (>= d digits)
         finally (return i)))
 
+(defun euler-029 (a b)
+  "Number of distinct terms of x^y for 2<=x<=A and 2<=y<=B"
+  (loop with terms = (make-hash-table)
+        for x from 2 upto a
+        do (loop for y from 2 upto b
+                 do (setf (gethash (expt x y) terms) t))
+        finally (return (hash-table-count terms))))
+
 (defun euler-031-recursive (target coins)
   (labels ((ways (remaining max)
              ;; # ways to reach REMAINING using coins no less than MAX
