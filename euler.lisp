@@ -201,13 +201,35 @@
                  do (setf (gethash (expt x y) terms) t))
         finally (return (hash-table-count terms))))
 
-(defun euler-030 (n)
-  "Sum of all numbers that can be written as the sum of fifth powers of their digits"
-  (loop for i from 2 upto 999999
-        for digits = (digits-of i)
-        for sum-of-powers = (reduce #'+ (mapcar (lambda (d) (expt d n)) digits))
-        if (= i sum-of-powers)
-        sum i))
+(flet ((fn (n) (* n (expt 9 5)))
+       (gn (n) (1- (expt 10 n))))
+
+  (dotimes (i 10)
+    (format t
+      "f(~D)=~D ~A ~D=g(~D)~%"
+      i
+      (fn i)
+      (if (> (fn i) (gn i)) ">" "<")
+      (gn i)
+      i)))
+
+(defun euler-030 (n &optional (base 10))
+  "Sum of all numbers that can be written as the sum of Nth powers of their digits"
+  (flet ((determine-bound (f g)
+           (loop for n from 1
+                 for fn = (funcall f n) and gn = (funcall g n)
+                 until (< fn gn)
+                 finally (return n))))
+
+    (loop with upper-bound = (determine-bound
+                               (lambda (m) (* m (expt (1- base) n)))
+                               (lambda (m) (1- (expt base m))))
+
+          for i from 2 upto (expt base upper-bound)
+          for digits = (digits-of i)
+          for sum-of-powers = (reduce #'+ (mapcar (lambda (d) (expt d n)) digits))
+          if (= i sum-of-powers)
+          sum i)))
 
 (defun euler-031-recursive (target coins)
   (labels ((ways (remaining max)
