@@ -201,18 +201,6 @@
                  do (setf (gethash (expt x y) terms) t))
         finally (return (hash-table-count terms))))
 
-(flet ((fn (n) (* n (expt 9 5)))
-       (gn (n) (1- (expt 10 n))))
-
-  (dotimes (i 10)
-    (format t
-      "f(~D)=~D ~A ~D=g(~D)~%"
-      i
-      (fn i)
-      (if (> (fn i) (gn i)) ">" "<")
-      (gn i)
-      i)))
-
 (defun euler-030 (n &optional (base 10))
   "Sum of all numbers that can be written as the sum of Nth powers of their digits"
   (flet ((determine-bound (f g)
@@ -347,7 +335,33 @@
         sum (loop for r from 0 upto n
                   count (> (choose n r) threshold))))
 
+(defun euler-085 (target)
+  "Find the area of the nxm rectangle which contains the closest number of rectangles to TARGET"
+  ;; TODO: analytic solution?
+  (flet ((rectangles (n m)
+           (loop for l from 0 below m
+                 sum (loop for k from 0 below n
+                           sum (* (- m l) (- n k))))))
+
+    ;; TODO: calculate tight bounds?
+    (loop with delta* and n* and m*
+          for n from 1 upto 100
+          do (loop for m from 1 upto 100
+               for r = (rectangles n m)
+               for delta = (abs (- target r))
+               if (not delta*)
+               do (setf delta* delta
+                        n* n
+                        m* m)
+               else
+               if (< delta delta*)
+               do (setf delta* delta
+                        n* n
+                        m* m))
+          finally (return (* n* m*)))))
+
 (defun euler-092 (upper)
+  "How many starting numbers below UPPER have a number chain arriving at 89?"
   (flet ((number-chain (n)
            "Return T if n's number chain reaches 89"
            (loop for i = n
@@ -404,6 +418,8 @@
       (solve "022" #'euler-022 "inputs/022.txt")
       (solve "023" #'euler-023)
       (solve "025" #'euler-025 1000) 
+      (solve "029" #'euler-029 100 100) 
+      (solve "030" #'euler-030 5)
       (solve "031" #'euler-031 200 #(1 2 5 10 20 50 100 200))
       (solve "035" #'euler-035 1000000)
       (solve "036" #'euler-036 1000000 '(2 10))
@@ -413,6 +429,7 @@
       (solve "048" #'euler-048 1000 10)
       (solve "052" #'euler-052 6)
       (solve "053" #'euler-053 1000000 100)
+      (solve "085" #'euler-085 2000000)
       (solve "092" #'euler-092 10e6)
       (solve "102" #'euler-102 "inputs/102.txt")   
       (solve "112" #'euler-112 99))))
