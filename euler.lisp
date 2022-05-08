@@ -1,4 +1,4 @@
-;,;;; euler.lisp
+;;;;; euler.lisp
 
 (declaim (optimize (speed 3)))
 
@@ -242,20 +242,6 @@
   "Number of ways to reach TARGET using any number of coins from COINS"
   (euler-031-dp target coins))
 
-(defun euler-047 (n)
-  "Find the first N consecutive numbers with distinct prime factors"
-  (loop for i from 2
-        for factor-lists = (loop for j from i upto (+ i (1- n))
-                                 collect (remove-duplicates (prime-factors j)))
-        until (every (lambda (l) (= n (length l))) factor-lists)
-        finally (return i)))
-
-(defun euler-048 (n d)
-  "Find the last D digits of 1 + 2^2 + 3^3 + ... + n^n"
-  (flet ((expt-sum (n)
-           (reduce #'+ (mapcar (lambda (i) (expt i i)) (loop for i from 1 upto n collect i)))))
-    (last-digits-of (expt-sum n) d)))
-
 (defun euler-035 (n)
   "Return all circular primes below N"
   ;; TODO: only consider numbers only containing 1,3,7,9
@@ -320,6 +306,35 @@
         until (and (integralp pn) (= n (pentagonal-n (floor pn))))
         finally (return n)))
 
+(defun euler-048 (n d)
+  "Find the last D digits of 1 + 2^2 + 3^3 + ... + n^n"
+  (flet ((expt-sum (n)
+           (reduce #'+ (mapcar (lambda (i) (expt i i)) (loop for i from 1 upto n collect i)))))
+    (last-digits-of (expt-sum n) d)))
+
+(defun euler-050 (n &optional prime-sequence)
+  "Find the prime below N which can be written as the sum of the most consecutive primes"
+  ;; TODO: optimize
+  (let* ((sieve (if prime-sequence
+                    prime-sequence
+                    (coerce (eratosthenes-sieve n) 'vector)))
+         (m (length sieve))
+         (is-prime (make-hash-table)))
+
+    ;; efficient primality testing
+    (loop for p across sieve do (setf (gethash p is-prime) t))
+    
+    (loop with window-size* = 0 and prime-sum = 0
+          for window-size from 1 upto m
+          do (loop for i from 0 upto (- m window-size)
+                   for window = (subseq sieve i (+ i window-size))
+                   for window-sum = (reduce #'+ window)
+                   until (> window-sum n)
+                   if (gethash window-sum is-prime)
+                   do (setf window-size* window-size
+                            prime-sum window-sum))
+          finally (return (values prime-sum window-size*)))))
+
 (defun euler-052 (k)
   "Find the smallest number x such that 2x,...,kx all contain the same digits"
   (loop for i from 1
@@ -349,12 +364,11 @@
           do (loop for m from 1 upto 100
                for r = (rectangles n m)
                for delta = (abs (- target r))
-               if (not delta*)
+               unless delta*
                do (setf delta* delta
                         n* n
                         m* m)
-               else
-               if (< delta delta*)
+               when (< delta delta*)
                do (setf delta* delta
                         n* n
                         m* m))
@@ -427,6 +441,7 @@
       (solve "042" #'euler-042 "inputs/words.txt")
       (solve "045" #'euler-045 40755)
       (solve "048" #'euler-048 1000 10)
+      (solve "050" #'euler-050 6)
       (solve "052" #'euler-052 6)
       (solve "053" #'euler-053 1000000 100)
       (solve "085" #'euler-085 2000000)
