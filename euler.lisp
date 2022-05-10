@@ -1,4 +1,4 @@
-;;;;; euler.lisp
+;;;; euler.lisp
 
 (declaim (optimize (speed 3)))
 
@@ -292,7 +292,7 @@
         for tn = (* 1/2 n (1+ n))
         until (> tn upper-bound)
         do (setf (gethash tn triangle-numbers) t))
-      
+
       (loop for word in (read-from-file words-file)
         count (gethash (word-score word) triangle-numbers)))))
 
@@ -388,6 +388,44 @@
     (loop for i from 2 below upper
           count (number-chain i))))
 
+(defun euler-101 (d polynomial)
+  "Sum the first incorrect terms of POLYNOMIAL of degree D"
+  ;; outline:
+  ;; - generate characteristic matrix for first k terms
+  ;; - solve system of equations to find nth term (approximation)
+  ;; - generate terms until it disagrees with true polynomial
+  (labels ((characteristic-matrix (n)
+             (loop with matrix = (make-array (list n n))
+                   for i from 0 below n
+                   do (loop for j from 0 below n
+                            for a = (1+ i) and b = (1+ j)
+                            do (setf (aref matrix i j) (expt a (- n b))))
+                   finally (return matrix)))
+
+           (first-terms (k polynomial)
+             "First K terms of polynomial POLYNOMIAL"
+             (loop for i from 1 upto k
+                   collect (funcall polynomial i) into terms
+                   finally (return (coerce terms 'vector))))
+           
+           (fit (k p d)
+             "Return the first incorrect term from generating terms based on K samples of POLYNOMIAL with degree D"
+             (let ((nth-term (apply #'polynomial
+                                    (coerce (solve-linear-system
+                                              (characteristic-matrix k)
+                                              (first-terms k p))
+                                            'list))))
+
+               (loop for n from 1 upto (1+ d)
+                     for true = (funcall p n)
+                     for pred = (funcall nth-term n)
+                     if (/= true pred) return pred))))
+
+    (loop for k from 1 upto d
+          for first-incorrect = (fit k polynomial d)
+          if first-incorrect
+          sum first-incorrect)))
+
 (defun euler-102 (filename)
   "Return the number of times a triangle from FILENAME contains the origin in its interior"
   (loop with origin = #(0 0 0)
@@ -406,7 +444,8 @@
         finally (return i)))
 
 (defun solve (problem-no fn &rest args)
-  (format t "~D: ~D~%" problem-no (apply fn args)))
+  (format t "~D: " problem-no)
+  (format t "~D~%" (apply fn args)))
 
 (defun main ()
   ;(format t "01: ~D~%" (euler-001 1000))
@@ -441,10 +480,11 @@
       (solve "042" #'euler-042 "inputs/words.txt")
       (solve "045" #'euler-045 40755)
       (solve "048" #'euler-048 1000 10)
-      (solve "050" #'euler-050 6)
+      (solve "050" #'euler-050 1000) ; should be 1000000
       (solve "052" #'euler-052 6)
       (solve "053" #'euler-053 1000000 100)
       (solve "085" #'euler-085 2000000)
       (solve "092" #'euler-092 10e6)
+      (solve "101" #'euler-101 10 (polynomial 1 -1 1 -1 1 -1 1 -1 1 -1 1))
       (solve "102" #'euler-102 "inputs/102.txt")   
       (solve "112" #'euler-112 99))))

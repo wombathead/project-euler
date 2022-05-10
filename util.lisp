@@ -1,5 +1,7 @@
 ;;;; util.lisp
 
+(ql:quickload :alexandria)
+
 ;;; general
 
 (defun read-from-file (filename)
@@ -152,11 +154,15 @@
   (loop for k from 0 upto n
         sum (* (choose n k) (expt x k) (expt y (- n k)))))
 
-(defun polynomial (x &rest coeffs)
+(defun compute-polynomial (x &rest coeffs)
   "Compute the n-degree polynomial p(n) = a_n x^n + ... + a_1 x + a_0 where COEFFS = '(a_n ... a_1 a_0)"
   (loop for a in coeffs
         for p = a then (+ (* p x) a)
         finally (return p)))
+
+(defun polynomial (&rest coeffs)
+  "Returns the polynomial p(n"
+  (lambda (n) (apply #'compute-polynomial n coeffs)))
 
 (defun quadratic-roots (a b c)
   (let ((discriminant (- (* b b) (* 4 a c))))
@@ -174,7 +180,7 @@
 (defun triangle-n (n)
   "Compute the Nth triangle number"
   ;; T(n) = n(n+1)/2
-  (polynomial n 1/2 1/2 0))
+  (compute-polynomial n 1/2 1/2 0))
 
 (defun inverse-triangle (y)
   (quadratic-inverse y 1/2 1/2 0))
@@ -182,7 +188,7 @@
 (defun pentagonal-n (n)
   "Compute the Nth pentagonal number"
   ;; P(n) = n(3n-1)/2
-  (polynomial n 3/2 -1/2 0))
+  (compute-polynomial n 3/2 -1/2 0))
 
 (defun inverse-pentagonal (y)
   (quadratic-inverse y 3/2 -1/2 0))
@@ -206,6 +212,65 @@
         if (> digit prev-digit) do (setf decreasesp t)
         if (and increasesp decreasesp) return t
         finally (return nil)))
+
+;;; linear algebra
+
+(defun gaussian-elimination (A)
+  "Perform Gaussian elimination on matrix A"
+  ;; TODO: this probably only works for square matrices for now
+  (let* ((n (array-dimension A 0))
+         (m (array-dimension A 1))
+         (B (alexandria:copy-array A)))
+
+    ;; first get the matrix in row echelon form
+    (loop for i from 0 below n
+          for factor = (aref B i i)
+          ;; first get the leading coefficient equal to 1
+          unless (zerop factor)
+          do (loop for j from i below m
+                   for aij = (aref B i j) 
+                   do (setf (aref B i j) (/ aij factor)))
+          ;; now eliminate the leading coefficient in all rows below
+          do (loop for k from (1+ i) below n
+                   for leading-coefficient = (aref B k i)
+                   do (loop for j from 0 below m
+                            for entry = (aref B k j)
+                            for delta = (* leading-coefficient (aref B i j))
+                            do (setf (aref B k j) (- entry delta)))))
+
+    ;; now get the matrix in reduced row echelon form
+    (loop for i from (1- n) downto 0
+          do (loop for k from (1- i) downto 0
+                   for factor = (aref B k i)
+                   do (loop for j from i below m
+                            for entry = (aref B k j)
+                            for delta = (* factor (aref B i j))
+                            do (setf (aref B k j) (- entry delta)))))
+    B)) 
+
+(defun augmented-matrix (A b)
+  "Splice together the nxm array A with the n vector B"
+  (let* ((n (array-dimension A 0))
+         (m (array-dimension A 1))
+         (augmented (make-array (list n (1+ m)))))
+
+    (loop for i from 0 below n
+          do (loop for j from 0 below m
+                   do (setf (aref augmented i j) (aref A i j))))
+
+    (loop for i from 0 below n
+          do (setf (aref augmented i m) (aref b i)))
+
+    augmented))
+
+(defun solve-linear-system (A b)
+  "Solve linear system of equations defined by Ax = b"
+  (loop with gaussian = (gaussian-elimination (augmented-matrix A b))
+        with n = (array-dimension gaussian 0) and m = (array-dimension gaussian 1) 
+        with solution = (make-array n)
+        for i from 0 below n
+        do (setf (aref solution i) (aref gaussian i (1- m)))
+        finally (return solution)))
 
 ;;; geometry
 
