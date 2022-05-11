@@ -154,15 +154,19 @@
   (loop for k from 0 upto n
         sum (* (choose n k) (expt x k) (expt y (- n k)))))
 
-(defun compute-polynomial (x &rest coeffs)
-  "Compute the n-degree polynomial p(n) = a_n x^n + ... + a_1 x + a_0 where COEFFS = '(a_n ... a_1 a_0)"
-  (loop for a in coeffs
-        for p = a then (+ (* p x) a)
-        finally (return p)))
-
 (defun polynomial (&rest coeffs)
-  "Returns the polynomial p(n"
-  (lambda (n) (apply #'compute-polynomial n coeffs)))
+  "Returns the polynomial p(x)"
+  (flet ((compute-polynomial (x &rest coeffs)
+           "Compute p(n) = a_n x^n + ... + a_1 x + a_0 where COEFFS = '(a_n ... a_1 a_0)"
+           (loop for a in coeffs
+                 for p = a then (+ (* p x) a)
+                 finally (return p))))
+
+    (lambda (x) (apply #'compute-polynomial x coeffs))))
+
+(defun evaluate-polynomial (x p)
+  "Evaluate polynomial p(x) = a_n x^n + ... + a_1 x + a_0"
+  (funcall p x))
 
 (defun quadratic-roots (a b c)
   (let ((discriminant (- (* b b) (* 4 a c))))
@@ -180,7 +184,7 @@
 (defun triangle-n (n)
   "Compute the Nth triangle number"
   ;; T(n) = n(n+1)/2
-  (compute-polynomial n 1/2 1/2 0))
+  (evaluate-polynomial n (polynomial 1/2 1/2 0)))
 
 (defun inverse-triangle (y)
   (quadratic-inverse y 1/2 1/2 0))
@@ -188,7 +192,7 @@
 (defun pentagonal-n (n)
   "Compute the Nth pentagonal number"
   ;; P(n) = n(3n-1)/2
-  (compute-polynomial n 3/2 -1/2 0))
+  (evaluate-polynomial n (polynomial 3/2 -1/2 0)))
 
 (defun inverse-pentagonal (y)
   (quadratic-inverse y 3/2 -1/2 0))
@@ -214,6 +218,15 @@
         finally (return nil)))
 
 ;;; linear algebra
+
+(defun characteristic-matrix (n)
+  "Generate the matrix of constraints satisfied by the first N terms of polynomial of degree d satisfy"
+  (loop with matrix = (make-array (list n n))
+        for i from 0 below n
+        do (loop for j from 0 below n
+                 for a = (1+ i) and b = (1+ j)
+                 do (setf (aref matrix i j) (expt a (- n b))))
+        finally (return matrix))) 
 
 (defun gaussian-elimination (A)
   "Perform Gaussian elimination on matrix A"

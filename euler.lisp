@@ -394,20 +394,12 @@
   ;; - generate characteristic matrix for first k terms
   ;; - solve system of equations to find nth term (approximation)
   ;; - generate terms until it disagrees with true polynomial
-  (labels ((characteristic-matrix (n)
-             (loop with matrix = (make-array (list n n))
-                   for i from 0 below n
-                   do (loop for j from 0 below n
-                            for a = (1+ i) and b = (1+ j)
-                            do (setf (aref matrix i j) (expt a (- n b))))
-                   finally (return matrix)))
-
-           (first-terms (k polynomial)
-             "First K terms of polynomial POLYNOMIAL"
+  (labels ((first-terms (k p)
+             "First K terms of polynomial P"
              (loop for i from 1 upto k
-                   collect (funcall polynomial i) into terms
+                   collect (evaluate-polynomial i p) into terms
                    finally (return (coerce terms 'vector))))
-           
+
            (fit (k p d)
              "Return the first incorrect term from generating terms based on K samples of POLYNOMIAL with degree D"
              (let ((nth-term (apply #'polynomial
@@ -417,8 +409,8 @@
                                             'list))))
 
                (loop for n from 1 upto (1+ d)
-                     for true = (funcall p n)
-                     for pred = (funcall nth-term n)
+                     for true = (evaluate-polynomial n p)
+                     for pred = (evaluate-polynomial n nth-term)
                      if (/= true pred) return pred))))
 
     (loop for k from 1 upto d
