@@ -7,6 +7,9 @@
 
 (defpackage #:euler
   (:use :cl :iterate)
+  (:import-from :alexandria
+                :hash-table-keys
+                :copy-array)
   (:export :main))
 
 (in-package #:euler)
@@ -435,6 +438,11 @@
         until (= percentage (* 100 (/ bouncies i)))
         finally (return i)))
 
+(defun euler-107 (filename)
+  "Compute minimum spanning tree on graph given (in adjacency matrix) in FILENAME"
+  (let ((input (adjmatrix->adjlist (file->adjmatrix filename))))
+    (- (total-edge-weight input) (total-edge-weight (prims input)))))
+
 (defun solve (problem-no fn &rest args)
   (format t "~D: " problem-no)
   (format t "~D~%" (apply fn args)))
@@ -479,4 +487,5 @@
       (solve "092" #'euler-092 10e6)
       (solve "101" #'euler-101 10 (polynomial 1 -1 1 -1 1 -1 1 -1 1 -1 1))
       (solve "102" #'euler-102 "inputs/102.txt")   
+      (solve "107" #'euler-107 "inputs/107.txt")   
       (solve "112" #'euler-112 99))))

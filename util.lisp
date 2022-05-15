@@ -16,10 +16,13 @@
 (defun integralp (n)
   "Return (floor N) if N represents an integer otherwise NIL"
   (when (= (floor n) (ceiling n))
-      (floor n)))
+    (floor n)))
 
 (defun increasingp (list) (every #'<= list (rest list)))
 (defun decreasingp (list) (every #'>= list (rest list)))
+
+(defun select-random (list)
+  (nth (random (length list)) list))
 
 ;;; strings
 
@@ -317,11 +320,74 @@
          (u (cross b c))        ; normal of PBC
          (v (cross c a))        ; normal of PCA
          (w (cross a b)))       ; normal of PAB
-    
+
     (not (or (minusp (dot u v))
              (minusp (dot u w))))))
 
 ;;; graphs
+
+(defun file->adjmatrix (filename)
+  "Parse FILENAME into adjacency matrix"
+  (let* ((input (mapcar (lambda (line)
+                          (mapcar (lambda (s)
+                                    (unless (string= "-" s)
+                                      (parse-integer s)))
+                                  (str:split "," line)))
+                        (read-from-file filename)))
+         (n (length input))
+         (m (length (first input))))
+    (make-array (list n m) :initial-contents input)))
+
+(defun adjmatrix->adjlist (adjmatrix)
+  "Convert adjacency matrix to adjacency list"
+  (loop with adjlist = (make-hash-table)
+        and (n m) = (array-dimensions adjmatrix)
+        for u from 0 below n
+        do (loop for v from 0 below m
+                 for w = (aref adjmatrix u v)
+                 when (aref adjmatrix u v)
+                 do (push (cons v w) (gethash u adjlist)))
+        finally (return adjlist)))
+
+(defun edge-in-adjlist-p (adjlist u v)
+  "Check if edge (u,v) is in adjacency list ADJLIST"
+  (let (found)
+    (loop for (n . w) in (gethash u adjlist)
+          if (funcall (hash-table-test adjlist) v n)
+          do (setf found t)
+          finally (return found))))
+
+(defun prims (adjlist)
+  "A (highly inefficient) implementation of Prim's minimum spanning tree algorithm for ADJLIST"
+  (flet ((valid-edge-p (adjlist v w current-min)
+           (or (null current-min)
+               (and (< w current-min)
+                    (null (gethash v adjlist))))))
+
+    (loop with tree = (make-hash-table :test (hash-table-test adjlist))
+          initially (setf (gethash (select-random (hash-table-keys adjlist)) tree) nil)
+          for min-edge = (loop with w-min and edge
+                           for u in (hash-table-keys tree)
+                           do (loop for (v . w) in (gethash u adjlist)
+                                    if (valid-edge-p tree v w w-min)
+                                    do (setf w-min w
+                                             edge (list u v w)))
+                           finally (return edge))
+          do
+          (let ((u (first min-edge))
+                (v (second min-edge))
+                (w (third min-edge)))
+            (push (cons v w) (gethash u tree))
+            (push (cons u w) (gethash v tree)))
+          until (= (length (hash-table-keys tree)) (length (hash-table-keys adjlist)))
+          finally (return tree))))
+
+(defun total-edge-weight (adjlist)
+  "Sum of all edge weights in ADJLIST"
+  (loop for u in (hash-table-keys adjlist)
+        sum (loop for (v . w) in (gethash u adjlist)
+                  sum w) into total-weight
+        finally (return (/ total-weight 2))))
 
 #|
 (defun topological-ordering (G)
