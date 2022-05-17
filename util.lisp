@@ -24,6 +24,51 @@
 (defun select-random (list)
   (nth (random (length list)) list))
 
+;;; dates
+
+(defun leap-year-p (year)
+  (zerop (mod year 4)))
+
+(defun day-of-week (year month day)
+  "Calculate the day of the week on which YEAR-MONTH-DAY falls in the Gregorian calendar"
+  (labels ((century-anchor (c)
+             (mod (+ 2 (* 5 (mod c 4)) 7) 7))
+           (year-anchor (y)
+             (let* ((c (floor y 100))
+                    (y (mod y 100))
+                    (subexp (/ (+ y (* 11 (mod y 2))) 2)))
+               (mod (+ (century-anchor c)
+                       (- 7 (mod (+ subexp (* 11 (mod subexp 2))) 7)))
+                    7))))
+
+    (let ((a (year-anchor year))
+          (diff (cond ((= 1 month) (- day (if (leap-year-p year) 4 3)))
+                      ((= 2 month) (- day (if (leap-year-p year) 29 28)))
+                      ((evenp month) (- day month))
+                      ((= month 3) (- day 14))
+                      ((= month 5) (- day 9))
+                      ((= month 7) (- day 11))
+                      ((= month 9) (- day 5))
+                      ((= month 11) (- day 7))
+                      (t 0))))
+      (mod (+ a (mod diff 7)) 7))))
+
+(defun days-in-month (month year)
+  "Number of days in MONTH for YEAR"
+  (case month
+    (1 31)
+    (2 (if (leap-year-p year) 29 28))
+    (3 31)
+    (4 30)
+    (5 31)
+    (6 30)
+    (7 31)
+    (8 31)
+    (9 30)
+    (10 31)
+    (11 30)
+    (12 31)))
+
 ;;; strings
 
 (defun first-digits-of (n d &optional (base 10))
@@ -96,14 +141,6 @@
                        finally (return d))))
     (if (= result n) n result)))
 
-(defun prime-factors (n)
-  "Return the prime factorization of N as a list"
-  (when (plusp n)
-    (loop for m = n then (/ m k)
-          for k = (pollard-rho m)
-          collect k  
-          until (= k m))))
-
 (defun factors (n)
   "Return all factors of N"
   (loop for i from 1 upto (isqrt n)
@@ -111,6 +148,16 @@
         if (zerop r)
         if (/= i q) append (list i q)
         else append (list q)))
+
+(defun prime-factors (n &optional probabilistic)
+  "Return the prime factorization of N as a list"
+  (if probabilistic 
+      (when (plusp n)
+        (loop for m = n then (/ m k)
+              for k = (pollard-rho m)
+              collect k  
+              until (= k m))) 
+      (remove-if-not #'primep (factors n))))
 
 (defun proper-factors (n)
   "All factors of N excluding N"

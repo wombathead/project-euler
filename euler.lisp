@@ -141,6 +141,12 @@
   "Sum of digits in 2^1000"
   (reduce #'+ (digits-of n 10)))
 
+(defun euler-019 (start-year end-year)
+  "How many Sundays fall on the first of the month between START-YEAR and END-YEAR?"
+  (loop for y from start-year upto end-year
+        sum (loop for m from 1 upto 12
+                  count (zerop (day-of-week y m 1)))))
+
 (defun euler-020 (n)
   "Sum of digits in 100!"
   (reduce #'+ (digits-of n 10)))
@@ -466,6 +472,7 @@
       (solve "014" #'euler-014 1000000)
       (solve "015" #'euler-015 20 20)
       (solve "016" #'euler-016 (expt 2 1000))
+      (solve "019" #'euler-019 1901 2000)
       (solve "020" #'euler-020 (factorial 100))
       (solve "021" #'euler-021 10000)
       (solve "022" #'euler-022 "inputs/022.txt")
