@@ -103,6 +103,49 @@
                  do (setf (aref composites idx) 1))
         sum i))
 
+(defun euler-011 (filename k)
+  "Max product of K adjacent numbers (straight line) in grid given in FILENAME"
+  (let* ((numbers (mapcar (lambda (r) (mapcar #'parse-integer (str:words r)))
+                          (read-from-file filename)))
+         (n (length numbers))
+         (m (length (first numbers)))
+         (grid (make-array (list n m) :initial-contents numbers))
+         (max-product 0))
+    (loop for r from 0 below n
+          do (loop for c from 0 below m
+                   do 
+                   (when (<= c (- m k))
+                     (loop for i from 0 below k
+                           for ci = (+ c i)
+                           for p = (aref grid r ci) then (* p (aref grid r ci))
+                           if (> p max-product)
+                           do (setf max-product p)))
+
+                   (when (<= r (- n k))
+                     (loop for i from 0 below k
+                           for ri = (+ r i)
+                           for p = (aref grid ri c) then (* p (aref grid ri c))
+                           if (> p max-product)
+                           do (setf max-product p)))
+
+                   (when (and (<= c (- m k))
+                              (<= r (- n k)))
+                     (loop for i from 0 below k
+                           for ri = (+ r i) and ci = (+ c i)
+                           for p = (aref grid ri ci) then (* p (aref grid ri ci))
+                           if (> p max-product)
+                           do (setf max-product p)))
+
+                   (when (and (>= c (1- k))
+                              (<= r (- n k)))
+                     (loop for i from 0 below k
+                           for ri = (+ r i) and ci = (- c i)
+                           for p = (aref grid ri ci) then (* p (aref grid ri ci))
+                           if (> p max-product)
+                           do (setf max-product p))))
+
+          finally (return max-product))))
+
 (defun euler-012 (n)
   "First triangle number with over N divisors"
   (loop for triangle-number = 1 then (+ triangle-number i) 
@@ -467,6 +510,7 @@
       (solve "008" #'euler-008 "inputs/008.txt" 13)
       (solve "009" #'euler-009 1000)
       (solve "010" #'euler-010 2000000)
+      (solve "011" #'euler-011 "inputs/011.txt" 4)
       (solve "012" #'euler-012 500)
       (solve "013" #'euler-013 "inputs/013.txt" 10)
       (solve "014" #'euler-014 1000000)
