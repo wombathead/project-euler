@@ -1,6 +1,7 @@
 ;;;; util.lisp
 
 (ql:quickload :alexandria)
+(ql:quickload :str)
 
 ;;; general
 
@@ -116,30 +117,66 @@
 
 ;;; number theory
 
+(defun miller-rabin (n k)
+  "Output NIL if K rounds of Miller-Rabin determine N to be composite, otherwise T for (probably) prime"
+  (when (> n 3)
+    ;; TODO: come up with better decompositions n = 2^r · d + 1
+    ;; (we want to find small r to minimise iterations of inner-loop)
+    (let* ((r (loop for m = (1- n) then (floor m 2)
+                    for r from 0
+                    while (zerop (mod m 2))
+                    finally (return r)))
+           (d (/ (1- n) (expt 2 r))))
+
+      (format t "~D = 2^~D . ~D + 1~%" n r d)
+
+      (loop named witness-loop
+            repeat k
+            for a = (+ 2 (random (- n 3)))    ; a in U[2,n-2]
+            for x = (mod (expt a d) n)
+            unless (or (= x 1) (= x (1- n)))
+            do (loop named inner-loop
+                     repeat (1- r)
+                     do (setf x (mod (* x x) n))
+                     if (= x (1- n))
+                     do (return-from inner-loop)
+                     finally (return-from witness-loop nil))
+            finally (return-from witness-loop t)))))
+
 (defun primep (n)
-  (case n
-    (1 nil)
-    (2 t)
-    (3 t)
-    (t (loop for prime = t then (if (zerop (mod n i)) nil prime)
-             for i from 2 upto (isqrt n)
-             until (not prime)
-             finally (return prime)))))
+  (miller-rabin n 20))
 
 (defun collatz (n)
   "Collatz function"
   (if (evenp n) (/ n 2) (1+ (* 3 n))))
 
-(defun pollard-rho (n &optional g)
-  "Return a prime factor of N using polynomial G"
-  (let* ((n (abs n))
-         (g (if g g (lambda (x) (mod (+ (* x x) (random n)) n))))
-         (result (loop for x = 2 then (funcall g x)
-                       for y = 2 then (funcall g (funcall g y))
-                       for d = 1 then (gcd (abs (- x y)) n)
-                       while (= d 1)
-                       finally (return d))))
-    (if (= result n) n result)))
+(defun polynomial (&rest coeffs)
+  "Returns the polynomial p(x)"
+  (flet ((compute-polynomial (x &rest coeffs)
+           "Compute p(n) = a_n x^n + ... + a_1 x + a_0 where COEFFS = '(a_n ... a_1 a_0)"
+           (loop for a in coeffs
+                 for p = a then (+ (* p x) a)
+                 finally (return p))))
+
+    (lambda (x) (apply #'compute-polynomial x coeffs))))
+
+(defun evaluate-polynomial (x p)
+  "Evaluate polynomial p(x) = a_n x^n + ... + a_1 x + a_0"
+  (funcall p x))
+
+(defun pollard-rho (n g)
+  "Use Pollard's rho algorithm to find a non-trivial factor of N using polynomial G"
+  (let ((g (lambda (x)
+             (mod (evaluate-polynomial x g) n))))
+
+    (if (evenp n)
+        2
+        (loop with x = 2 and y = 2 and d = 1
+              while (= d 1)
+              do (setf x (funcall g x)
+                       y (funcall g (funcall g y))
+                       d (gcd (abs (- x y)) n))
+              finally (when (/= d n) (return d))))))
 
 (defun factors (n)
   "Return all factors of N"
@@ -154,7 +191,7 @@
   (if probabilistic 
       (when (plusp n)
         (loop for m = n then (/ m k)
-              for k = (pollard-rho m)
+              for k = (pollard-rho m (polynomial 1 0 1))
               collect k  
               until (= k m))) 
       (remove-if-not #'primep (factors n))))
@@ -203,20 +240,6 @@
   "Compute (x + y)^n"
   (loop for k from 0 upto n
         sum (* (choose n k) (expt x k) (expt y (- n k)))))
-
-(defun polynomial (&rest coeffs)
-  "Returns the polynomial p(x)"
-  (flet ((compute-polynomial (x &rest coeffs)
-           "Compute p(n) = a_n x^n + ... + a_1 x + a_0 where COEFFS = '(a_n ... a_1 a_0)"
-           (loop for a in coeffs
-                 for p = a then (+ (* p x) a)
-                 finally (return p))))
-
-    (lambda (x) (apply #'compute-polynomial x coeffs))))
-
-(defun evaluate-polynomial (x p)
-  "Evaluate polynomial p(x) = a_n x^n + ... + a_1 x + a_0"
-  (funcall p x))
 
 (defun quadratic-roots (a b c)
   (let ((discriminant (- (* b b) (* 4 a c))))
@@ -412,9 +435,9 @@
                     (null (gethash v adjlist))))))
 
     (loop with tree = (make-hash-table :test (hash-table-test adjlist))
-          initially (setf (gethash (select-random (hash-table-keys adjlist)) tree) nil)
+          initially (setf (gethash (select-random (alexandria:hash-table-keys adjlist)) tree) nil)
           for min-edge = (loop with w-min and edge
-                           for u in (hash-table-keys tree)
+                           for u in (alexandria:hash-table-keys tree)
                            do (loop for (v . w) in (gethash u adjlist)
                                     if (valid-edge-p tree v w w-min)
                                     do (setf w-min w
@@ -426,12 +449,12 @@
                 (w (third min-edge)))
             (push (cons v w) (gethash u tree))
             (push (cons u w) (gethash v tree)))
-          until (= (length (hash-table-keys tree)) (length (hash-table-keys adjlist)))
+          until (= (length (alexandria:hash-table-keys tree)) (length (alexandria:hash-table-keys adjlist)))
           finally (return tree))))
 
 (defun total-edge-weight (adjlist)
   "Sum of all edge weights in ADJLIST"
-  (loop for u in (hash-table-keys adjlist)
+  (loop for u in (alexandria:hash-table-keys adjlist)
         sum (loop for (v . w) in (gethash u adjlist)
                   sum w) into total-weight
         finally (return (/ total-weight 2))))
