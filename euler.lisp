@@ -480,6 +480,24 @@
         and c = (vector cx cy 0)
         count (triangle-contains-point-p a b c origin)))
 
+(defun euler-104 ()
+  "Find k such that F_k is the first Fibonacci number for which the first and last nine digits are pandigital"
+  ;; TODO: optimize
+  (loop for a = 1 then b
+        for b = 1 then c
+        for c = (+ a b)
+        for k from 1
+        for d = (1+ (floor (log a 10)))
+        for n = (mod a (expt 10 9)) ; last 9 digits
+        and m = (floor a (expt 10 (- d 9))) ; first 9 digits
+        until (and (pandigitalp n) (pandigitalp m))
+        finally (return k)))
+
+(defun euler-107 (filename)
+  "Compute minimum spanning tree on graph given (in adjacency matrix) in FILENAME"
+  (let ((input (adjmatrix->adjlist (file->adjmatrix filename))))
+    (- (total-edge-weight input) (total-edge-weight (prims input)))))
+
 (defun euler-112 (percentage)
   "Find the least number for which the proportion of bouncy numbers is exactly PERCENTAGE"
   (loop for i from 1
@@ -487,10 +505,21 @@
         until (= percentage (* 100 (/ bouncies i)))
         finally (return i)))
 
-(defun euler-107 (filename)
-  "Compute minimum spanning tree on graph given (in adjacency matrix) in FILENAME"
-  (let ((input (adjmatrix->adjlist (file->adjmatrix filename))))
-    (- (total-edge-weight input) (total-edge-weight (prims input)))))
+(defun euler-124 (max index)
+  "Find the INDEXth number n between 1 and MAX with the highest radical number"
+  (loop with k = 2 and r = 2
+        with checked = (make-hash-table :test 'equal)
+        for factorisation = (prime-factors r)
+        unless (gethash factorisation checked)
+        do (progn
+             (setf (gethash factorisation checked) t)
+             (loop for m in (sort (radical-multiples r max) #'<)
+                   if (= k index)
+                   do (return-from euler-124 m)
+                   else
+                   do (incf k)
+                   until (> m max)))
+        do (incf r)))
 
 (defun solve (problem-no fn &rest args)
   (format t "~D: " problem-no)
@@ -538,5 +567,7 @@
       (solve "092" #'euler-092 10e6)
       (solve "101" #'euler-101 10 (polynomial 1 -1 1 -1 1 -1 1 -1 1 -1 1))
       (solve "102" #'euler-102 "inputs/102.txt")   
+      (solve "104" #'euler-104)
       (solve "107" #'euler-107 "inputs/107.txt")   
-      (solve "112" #'euler-112 99))))
+      (solve "112" #'euler-112 99)   
+      (solve "124" #'euler-124 100000 10000))))

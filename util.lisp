@@ -85,6 +85,19 @@
     (format nil "~~~D,'0D" d)
     (nth-value 1 (floor n (expt base d)))))
 
+(defun pandigitalp (n)
+  (loop with appeared = (make-hash-table)
+        for d across (format nil "~D" n)
+        do (setf (gethash d appeared) t)
+        finally (return (loop for i from 0 below 9
+                              for d = (code-char (+ i (char-code #\1)))
+                              unless (gethash d appeared)
+                              return nil
+                              finally (return t)))))
+
+(defun list-pandigital-p (list)
+  (subsetp '(1 2 3 4 5 6 7 8 9) list))
+
 (defun digits-of (n &optional (base 10))
   "Collect the digits of N written in base BASE into a list"
   (loop for a = n then q
@@ -117,6 +130,13 @@
 
 ;;; number theory
 
+(defun fib (n)
+  "Return the Nth (zero-indexed) Fibonacci number: 0, 1, 1, 2, 3, 5, ..."
+  (let* ((φ (/ (1+ (sqrt 5)) 2))
+         (ψ (- 1 φ)))
+    (floor (- (expt φ n) (expt ψ n))
+           (sqrt 5))))
+
 (defun miller-rabin (n k)
   "Output NIL if K rounds of Miller-Rabin determine N to be composite, otherwise T for (probably) prime"
   (when (> n 3)
@@ -127,8 +147,6 @@
                     while (zerop (mod m 2))
                     finally (return r)))
            (d (/ (1- n) (expt 2 r))))
-
-      (format t "~D = 2^~D . ~D + 1~%" n r d)
 
       (loop named witness-loop
             repeat k
@@ -144,7 +162,14 @@
             finally (return-from witness-loop t)))))
 
 (defun primep (n)
-  (miller-rabin n 20))
+  (case n
+    (1 nil)
+    (2 t)
+    (3 t)
+    (t (miller-rabin n 20))))
+
+(defun relatively-prime-p (a b)
+  (= 1 (gcd a b)))
 
 (defun collatz (n)
   "Collatz function"
@@ -160,12 +185,16 @@
 
     (lambda (x) (apply #'compute-polynomial x coeffs))))
 
+(defun lof-polynomial (&rest coeffs)
+  "Returns polynomial p(x) where coeffs = '(a_0 a_1 ... a_n) are given lower order first"
+  (apply #'polynomial (reverse coeffs)))
+
 (defun evaluate-polynomial (x p)
   "Evaluate polynomial p(x) = a_n x^n + ... + a_1 x + a_0"
   (funcall p x))
 
 (defun pollard-rho (n g)
-  "Use Pollard's rho algorithm to find a non-trivial factor of N using polynomial G"
+  "Use Pollard's rho algorithm to find a non-trivial factor of N using polynomial G (mod N)"
   (let ((g (lambda (x)
              (mod (evaluate-polynomial x g) n))))
 
@@ -195,6 +224,19 @@
               collect k  
               until (= k m))) 
       (remove-if-not #'primep (factors n))))
+
+(defun radical (n)
+  "Return the product of N's prime factors"
+  (reduce #'* (prime-factors n)))
+
+(defun radical-multiples (n max)
+  "Generate multiples of N not exceeding MAX with the same radical number"
+  (labels ((generate-multiples (number factors)
+             (when (<= number max)
+               (cons number (loop for f in factors
+                                  and r = factors then (rest r)
+                                  nconc (generate-multiples (* number f) r))))))
+    (generate-multiples n (prime-factors n))))
 
 (defun proper-factors (n)
   "All factors of N excluding N"
