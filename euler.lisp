@@ -440,6 +440,87 @@
     (loop for i from 2 below upper
           count (number-chain i))))
 
+(defun parse-sudokus (filename)
+  (mapcar (lambda (list)
+            (make-array '(9 9) :initial-contents list))
+          (partition 9 (loop for line in (read-from-file filename) 
+                             when (= 9 (length line))
+                             collect (map 'list #'digit-char-p line)))))
+
+(defun grid-row (a i)
+  (loop for j from 0 below (array-dimension a 1)
+        collect (aref a i j)))
+
+(defun grid-column (a j)
+  (loop for i from 0 below (array-dimension a 0)
+        collect (aref a i j)))
+
+(defun grid-square (a i j)
+  (let* ((n (isqrt (array-dimension a 0)))
+         (m (isqrt (array-dimension a 1)))
+         (si (floor i n))
+         (sj (floor j m)))
+    (loop for x from 0 below n
+          nconc (loop for y from 0 below n
+                      collect (aref a (+ (* si n) x) (+ (* sj m) y))))))
+
+(defun cell-candidates (grid i j)
+  (let ((digits (loop for i from 1 upto (array-dimension grid 0) collect i)))
+    (reduce #'intersection
+            (mapcar (lambda (e) (set-difference digits e))
+                    (list (grid-row grid i)
+                          (grid-column grid j)
+                          (grid-square grid i j))))))
+
+(defun sudoku-complete-p (grid)
+  (loop with n = (array-dimension grid 0) and m = (array-dimension grid 1)
+        for i from 0 below n
+        do (loop for j from 0 below m
+                 if (zerop (aref grid i j))
+                 do (return-from sudoku-complete-p nil))
+        finally (return t)))
+
+(defun guessable-cell-p (sudoku i j)
+  (zerop (aref sudoku i j)))
+
+(defun next-guessable-cell (sudoku i j)
+  "Return the coordinates of the next guessable cell in SUDOKU from (I,J)"
+  (loop with n = (array-dimension sudoku 0) and m = (array-dimension sudoku 1)
+        for x = i then (if (= y (1- m)) (1+ x) x)
+        for y = (mod (1+ j) m) then (mod (1+ y) m)
+        while (< x n)
+        if (zerop (aref sudoku x y))
+        return (values x y)))
+
+(defun first-guessable-cell (sudoku)
+  "Return the first guessable cell of the sudoku"
+  (if (guessable-cell-p sudoku 0 0)
+      (values 0 0)
+      (next-guessable-cell sudoku 0 0)))
+
+(defun solve-sudoku (sudoku)
+  (labels ((guess-cell (sudoku i j)
+             (if (sudoku-complete-p sudoku)
+                 sudoku
+                 (loop for c in (cell-candidates sudoku i j)
+                       for g = (alexandria:copy-array sudoku)
+                       do (setf (aref g i j) c) ; guess A[i][j] = c 
+                       (multiple-value-bind (i j) (next-guessable-cell g i j)
+                         (let ((result (guess-cell g i j)))
+                           (when result
+                             (return-from guess-cell result))))))))
+
+    (multiple-value-bind (i j) (first-guessable-cell sudoku)
+      (guess-cell sudoku i j))))
+
+(defun euler-096 (filename)
+  "Sum the three digit numbers in the top left corner of the (solutions to) the sudokus given in FILENAME"
+  (loop for sudoku in (parse-sudokus filename)
+        for solution = (solve-sudoku sudoku)
+        sum (+ (* 100 (aref solution 0 0))
+               (* 10 (aref solution 0 1))
+               (aref solution 0 2))))
+
 (defun euler-101 (d polynomial)
   "Sum the first incorrect terms of POLYNOMIAL of degree D"
   ;; outline:
@@ -565,6 +646,7 @@
       (solve "053" #'euler-053 1000000 100)
       (solve "085" #'euler-085 2000000)
       (solve "092" #'euler-092 10e6)
+      (solve "096" #'euler-096 "inputs/sudoku.txt")
       (solve "101" #'euler-101 10 (polynomial 1 -1 1 -1 1 -1 1 -1 1 -1 1))
       (solve "102" #'euler-102 "inputs/102.txt")   
       (solve "104" #'euler-104)

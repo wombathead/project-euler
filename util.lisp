@@ -11,6 +11,11 @@
           while line
           collect line)))
 
+(defun partition (window-size list)
+  "Split LIST into sublists of size WINDOW-SIZE"
+  (loop for w on list by (lambda (list) (nthcdr window-size list))
+        collect (subseq w 0 window-size)))
+
 (defun print-hash-table (ht)
   (maphash (lambda (k v) (format t "~A: ~A~%" k v)) ht))
 
@@ -453,7 +458,7 @@
 (defun adjmatrix->adjlist (adjmatrix)
   "Convert adjacency matrix to adjacency list"
   (loop with adjlist = (make-hash-table)
-        and (n m) = (array-dimensions adjmatrix)
+        with n = (array-dimension adjmatrix 0) and m = (array-dimension adjmatrix 1)
         for u from 0 below n
         do (loop for v from 0 below m
                  for w = (aref adjmatrix u v)
