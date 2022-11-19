@@ -506,6 +506,40 @@
                   sum w) into total-weight
         finally (return (/ total-weight 2))))
 
+(defun dijkstra (adjlist start finish)
+  (flet ((dequeue (Q visited distance)
+           (loop with d = sb-ext:long-float-positive-infinity
+                 and v
+                 for u in Q
+                 if (and (< (gethash u distance) d)
+                         (not (gethash u visited)))
+                 do (setf d (gethash u distance)
+                          v u)
+                 finally (return v))))
+
+    (loop with test = (hash-table-test adjlist)
+          with visited = (make-hash-table :test test)
+          with distance = (make-hash-table :test test)
+          with predecessor = (make-hash-table :test test)
+          with Q = (alexandria:hash-table-keys adjlist)
+          initially
+          (loop for u in (alexandria:hash-table-keys adjlist)
+            do (setf (gethash u visited) nil
+                     (gethash u distance) sb-ext:long-float-positive-infinity
+                     (gethash u predecessor) nil))
+          (setf (gethash start distance) 0)
+          for u = (dequeue Q visited distance)
+          until (funcall test u finish)
+          do (loop for (v . w) in (gethash u adjlist)
+               if (< (+ w (gethash u distance)) (gethash v distance))
+               do (setf (gethash v distance) (+ w (gethash u distance))
+                        (gethash v predecessor) (cons u w))
+               do (setf (gethash u visited) t)
+               if (funcall test u finish)
+               return predecessor)
+
+          finally (return predecessor))))
+
 #|
 (defun topological-ordering (G)
   ;; find a vertex with no incoming edges

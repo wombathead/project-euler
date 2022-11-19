@@ -402,6 +402,91 @@
         sum (loop for r from 0 upto n
                   count (> (choose n r) threshold))))
 
+(defun euler-081 (filename)
+  "Smallest down-right path sum through matrix given in FILENAME"
+  (flet ((file->matrix (filename)
+           (loop for line in (read-from-file filename)
+                 collect (mapcar #'parse-integer (str:split "," line)) into rows
+                 finally (return (make-array
+                                   (list (length rows) (length (first rows)))
+                                   :initial-contents rows))))
+         (matrix->graph (matrix)
+           (loop with graph = (make-hash-table :test 'equal)
+                 with n = (array-dimension matrix 0) and m = (array-dimension matrix 1)
+                 for i from 0 below n
+                 do (loop for j from 0 below m
+                          for c = (cons i j)
+                          do
+                          (setf (gethash c graph) nil)
+                          (when (< i (1- n))
+                            (push (cons (cons (1+ i) j) (aref matrix (1+ i) j))
+                                  (gethash c graph)))
+
+                          (when (< j (1- m))
+                            (push (cons (cons i (1+ j)) (aref matrix i (1+ j)))
+                                  (gethash c graph))))
+                 finally (return graph))))
+
+    (let* ((matrix (file->matrix filename))
+           (graph (matrix->graph matrix))
+           (n (array-dimension matrix 0))
+           (m (array-dimension matrix 1))
+           (start (cons 0 0))
+           (finish (cons (1- n) (1- m))))
+      (loop with path = (dijkstra graph start finish)  
+        for (u . w) = (gethash finish path) then (gethash u path)
+        for (x . y) = u
+        while u
+        sum w into total
+        finally (return (+ total (aref matrix 0 0)))))))
+
+(defun euler-083 (filename)
+  "Smallest four-direction path sum through matrix given in FILENAME"
+  (flet ((file->matrix (filename)
+           (loop for line in (read-from-file filename)
+                 collect (mapcar #'parse-integer (str:split "," line)) into rows
+                 finally (return (make-array
+                                   (list (length rows) (length (first rows)))
+                                   :initial-contents rows))))
+         (matrix->graph (matrix )
+           (loop with graph = (make-hash-table :test 'equal)
+                 with n = (array-dimension matrix 0) and m = (array-dimension matrix 1)
+                 for i from 0 below n
+                 do (loop for j from 0 below m
+                          for c = (cons i j)
+                          do
+                          (setf (gethash c graph) nil)
+
+                          (when (> i 0)
+                            (push (cons (cons (1- i) j) (aref matrix (1- i) j))
+                                  (gethash c graph)))
+                          
+                          (when (< i (1- n))
+                            (push (cons (cons (1+ i) j) (aref matrix (1+ i) j))
+                                  (gethash c graph)))
+
+                          (when (> j 0)
+                            (push (cons (cons i (1- j)) (aref matrix i (1- j)))
+                                  (gethash c graph)))
+
+                          (when (< j (1- m))
+                            (push (cons (cons i (1+ j)) (aref matrix i (1+ j)))
+                                  (gethash c graph))))
+                 finally (return graph))))
+
+    (let* ((matrix (file->matrix filename))
+           (graph (matrix->graph matrix))
+           (n (array-dimension matrix 0))
+           (m (array-dimension matrix 1))
+           (start (cons 0 0))
+           (finish (cons (1- n) (1- m))))
+      (loop with path = (dijkstra graph start finish)  
+        for (u . w) = (gethash finish path) then (gethash u path)
+        for (x . y) = u
+        while u
+        sum w into total
+        finally (return (+ total (aref matrix 0 0)))))))
+
 (defun euler-085 (target)
   "Find the area of the nxm rectangle which contains the closest number of rectangles to TARGET"
   ;; TODO: analytic solution?
@@ -440,13 +525,6 @@
     (loop for i from 2 below upper
           count (number-chain i))))
 
-(defun parse-sudokus (filename)
-  (mapcar (lambda (list)
-            (make-array '(9 9) :initial-contents list))
-          (partition 9 (loop for line in (read-from-file filename) 
-                             when (= 9 (length line))
-                             collect (map 'list #'digit-char-p line)))))
-
 (defun grid-row (a i)
   (loop for j from 0 below (array-dimension a 1)
         collect (aref a i j)))
@@ -472,16 +550,16 @@
                           (grid-column grid j)
                           (grid-square grid i j))))))
 
-(defun sudoku-complete-p (grid)
-  (loop with n = (array-dimension grid 0) and m = (array-dimension grid 1)
-        for i from 0 below n
-        do (loop for j from 0 below m
-                 if (zerop (aref grid i j))
-                 do (return-from sudoku-complete-p nil))
-        finally (return t)))
-
 (defun guessable-cell-p (sudoku i j)
   (zerop (aref sudoku i j)))
+
+(defun sudoku-complete-p (sudoku)
+  (loop with n = (array-dimension sudoku 0) and m = (array-dimension sudoku 1)
+        for i from 0 below n
+        do (loop for j from 0 below m
+                 if (guessable-cell-p sudoku i j)
+                 do (return-from sudoku-complete-p nil))
+        finally (return t)))
 
 (defun next-guessable-cell (sudoku i j)
   "Return the coordinates of the next guessable cell in SUDOKU from (I,J)"
@@ -489,7 +567,7 @@
         for x = i then (if (= y (1- m)) (1+ x) x)
         for y = (mod (1+ j) m) then (mod (1+ y) m)
         while (< x n)
-        if (zerop (aref sudoku x y))
+        if (guessable-cell-p sudoku x y)
         return (values x y)))
 
 (defun first-guessable-cell (sudoku)
@@ -515,11 +593,18 @@
 
 (defun euler-096 (filename)
   "Sum the three digit numbers in the top left corner of the (solutions to) the sudokus given in FILENAME"
-  (loop for sudoku in (parse-sudokus filename)
-        for solution = (solve-sudoku sudoku)
-        sum (+ (* 100 (aref solution 0 0))
-               (* 10 (aref solution 0 1))
-               (aref solution 0 2))))
+  (flet ((parse-sudokus (filename)
+           (mapcar (lambda (list)
+                     (make-array '(9 9) :initial-contents list))
+                   (partition 9 (loop for line in (read-from-file filename) 
+                                      when (= 9 (length line))
+                                      collect (map 'list #'digit-char-p line))))))
+
+    (loop for sudoku in (parse-sudokus filename)
+          for solution = (solve-sudoku sudoku)
+          sum (+ (* 100 (aref solution 0 0))
+                (* 10 (aref solution 0 1))
+                (aref solution 0 2)))))
 
 (defun euler-101 (d polynomial)
   "Sum the first incorrect terms of POLYNOMIAL of degree D"
@@ -644,9 +729,11 @@
       (solve "050" #'euler-050 1000) ; should be 1000000
       (solve "052" #'euler-052 6)
       (solve "053" #'euler-053 1000000 100)
+      (solve "081" #'euler-081 "inputs/081.txt")
+      (solve "083" #'euler-083 "inputs/083.txt")
       (solve "085" #'euler-085 2000000)
       (solve "092" #'euler-092 10e6)
-      (solve "096" #'euler-096 "inputs/sudoku.txt")
+      (solve "096" #'euler-096 "inputs/096.txt")
       (solve "101" #'euler-101 10 (polynomial 1 -1 1 -1 1 -1 1 -1 1 -1 1))
       (solve "102" #'euler-102 "inputs/102.txt")   
       (solve "104" #'euler-104)
