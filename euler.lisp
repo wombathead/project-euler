@@ -395,6 +395,24 @@
         until (every (lambda (d) (equal (first digits) d)) (rest digits))
         finally (return i)))
 
+(defun euler-071 (m)
+  "Find the numerator of the next smallest reduced fraction to 3/7 for denominators at most M"
+  (flet ((general-solution ()
+           (loop with seen = (make-hash-table)
+                 for d from m above 1
+                 nconc (loop for n from 1 below d
+                             for f = (/ n d)
+                             unless (gethash f seen)
+                             collect f
+                             and do (setf (gethash f seen) t)) into reduced
+                 finally (setf reduced (sort reduced #'<))
+                 (return (nth (1- (binary-search reduced 3/7)) reduced))))))
+    ;; we can return the general solution and exhaust the heap...
+    ;; (general-solution)
+
+    ;; or we can be only slightly smarter
+    (1- (* 3 (floor m 7))))
+
 (defun euler-053 (threshold upper)
   "Count the number of times nCr exceeds THRESHOLD for 1<=n<=UPPER"
   ;; TODO: obviously this can be hugely optimised
@@ -729,6 +747,7 @@
       (solve "050" #'euler-050 1000) ; should be 1000000
       (solve "052" #'euler-052 6)
       (solve "053" #'euler-053 1000000 100)
+      (solve "071" #'euler-071 1000000)
       (solve "081" #'euler-081 "inputs/081.txt")
       (solve "083" #'euler-083 "inputs/083.txt")
       (solve "085" #'euler-085 2000000)

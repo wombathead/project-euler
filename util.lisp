@@ -19,6 +19,18 @@
 (defun print-hash-table (ht)
   (maphash (lambda (k v) (format t "~A: ~A~%" k v)) ht))
 
+(defun binary-search (list value)
+  (loop with n = (length list)
+        with a = (make-array (list n) :initial-contents list) 
+        with l = 0 and h = (1- n)
+        for m = (floor (+ l (/ (- h l) 2)))
+        until (> l h)  
+        if (= value (aref a m))
+        return m
+        else do (if (< value (aref a m))
+                    (setf h (1- m))
+                    (setf l (1+ m)))))
+
 (defun integralp (n)
   "Return (floor N) if N represents an integer otherwise NIL"
   (when (= (floor n) (ceiling n))
